@@ -1,26 +1,15 @@
-use chesslib::GameState;
+mod view;
+use chesslib::{Column, GameState, Row, Square, constants::*};
 use macroquad::prelude::*;
 
 #[macroquad::main("Chess")]
 async fn main() {
-    let gs = GameState::default();
-    let texture: Texture2D = load_texture("assets/boards/default.png").await.unwrap();
+    let _gs = GameState::default();
+    let mut view = view::View::new().await;
     loop {
-        let board_size = screen_width().min(screen_height());
-        clear_background(WHITE);
-        draw_texture_ex(&texture, 0.0, 0.0, WHITE, DrawTextureParams {
-            dest_size: Some(Vec2::splat(board_size)),
-            ..Default::default()
-        });
+        view.update_screen();
+        view.draw_board();
+        view.draw_piece_at_coords(Column::E, Row::One, WHITE_KING);
         next_frame().await
     }
-}
-
-struct View {
-    board_texture: Texture2D,
-}
-
-struct App {
-    state: GameState,
-    view: View,
 }

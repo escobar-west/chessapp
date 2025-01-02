@@ -1,8 +1,9 @@
 mod board;
 mod pieces;
 use board::Board;
+pub use board::{Column, Row, Square};
 use errors::InvalidFen;
-use pieces::Color;
+pub use pieces::{Color, Piece};
 
 pub struct GameState {
     board: Board,
@@ -29,7 +30,8 @@ impl GameState {
     }
 }
 
-mod constants {
+pub mod constants {
+    pub use crate::pieces::constants::*;
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 }
 

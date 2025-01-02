@@ -9,7 +9,7 @@ use mailbox::MailBox;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
-enum Row {
+pub enum Row {
     One,
     Two,
     Three,
@@ -48,7 +48,7 @@ impl<T> IndexMut<Row> for [T] {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
-enum Column {
+pub enum Column {
     A,
     B,
     C,
@@ -85,8 +85,8 @@ impl<T> IndexMut<Column> for [T] {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[rustfmt::skip]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
