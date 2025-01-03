@@ -1,8 +1,9 @@
 mod bitboard;
+pub mod iterators;
 mod mailbox;
 use std::ops::{Index, IndexMut};
 
-use crate::pieces::{Piece, constants::*};
+use crate::pieces::{Color, Piece, constants::*};
 use bitboard::BitBoard;
 use errors::InvalidFen;
 use mailbox::MailBox;
@@ -100,15 +101,23 @@ pub enum Square {
 }
 
 impl Square {
+    pub const fn from_coords(col: Column, row: Row) -> Self {
+        // Safety: Row and Col both only range from 0 to 7
+        unsafe { std::mem::transmute(8 * row as u8 + col as u8) }
+    }
+
+    pub const fn row(self) -> Row {
+        Row::from_u8(self as u8 >> 3)
+    }
+
+    pub const fn col(self) -> Column {
+        Column::from_u8(self as u8 & 7)
+    }
+
     const fn from_u8(val: u8) -> Self {
         assert!(val < 64);
         // Safety: code will panic if val > 63
         unsafe { std::mem::transmute(val) }
-    }
-
-    const fn from_coords(row: Row, col: Column) -> Self {
-        // Safety: Row and Col both only range from 0 to 7
-        unsafe { std::mem::transmute(8 * row as u8 + col as u8) }
     }
 
     const fn as_bitboard(self) -> BitBoard {
@@ -130,14 +139,29 @@ impl<T> IndexMut<Square> for [T] {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq)]
 struct PieceSet {
+    color: Color,
     pawns: BitBoard,
     rooks: BitBoard,
     knights: BitBoard,
     bishops: BitBoard,
     queens: BitBoard,
     kings: BitBoard,
+}
+
+impl PieceSet {
+    fn new(color: Color) -> Self {
+        Self {
+            color,
+            pawns: BitBoard::default(),
+            rooks: BitBoard::default(),
+            knights: BitBoard::default(),
+            bishops: BitBoard::default(),
+            queens: BitBoard::default(),
+            kings: BitBoard::default(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -156,8 +180,8 @@ impl Default for Board {
 impl Board {
     pub fn new() -> Self {
         Self {
-            white_pieces: PieceSet::default(),
-            black_pieces: PieceSet::default(),
+            white_pieces: PieceSet::new(Color::White),
+            black_pieces: PieceSet::new(Color::Black),
             mailbox: MailBox::default(),
         }
     }
@@ -177,7 +201,7 @@ impl Board {
                 } else {
                     let piece = Piece::try_from(c)?;
                     let square =
-                        Square::from_coords(Row::from_u8(row_idx), Column::from_u8(col_idx));
+                        Square::from_coords(Column::from_u8(col_idx), Row::from_u8(row_idx));
                     board.set_sq(square, piece);
                     col_idx += 1;
                 }

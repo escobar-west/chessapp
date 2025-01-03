@@ -10,6 +10,7 @@ pub struct View {
     width: f32,
     height: f32,
     board_size: f32,
+    square_size: f32,
     board_texture: Texture2D,
     piece_texture: Texture2D,
 }
@@ -20,10 +21,13 @@ impl View {
         let piece_texture: Texture2D = load_texture("assets/pieces/wiki_chess.png").await.unwrap();
         let width = screen_width();
         let height = screen_height();
+        let board_size = width.min(height);
+        let square_size = board_size / 8.0;
         Self {
             width,
             height,
-            board_size: width.min(height),
+            board_size,
+            square_size,
             board_texture,
             piece_texture,
         }
@@ -33,6 +37,7 @@ impl View {
         self.width = screen_width();
         self.height = screen_height();
         self.board_size = self.width.min(self.height);
+        self.square_size = self.board_size / 8.0;
     }
 
     pub fn draw_board(&self) {
@@ -44,13 +49,18 @@ impl View {
     }
 
     pub fn draw_piece_at_coords(&self, col: Column, row: Row, piece: Piece) {
-        let square_size = self.board_size / 8.0;
-        let x_coord = col as u8 as f32 * square_size;
-        let y_coord = (7 - row as u8) as f32 * square_size;
-        self.draw_piece(x_coord, y_coord, piece, square_size);
+        let x_coord = col as u8 as f32 * self.square_size;
+        let y_coord = (7 - row as u8) as f32 * self.square_size;
+        self.draw_piece(x_coord, y_coord, piece);
     }
 
-    fn draw_piece(&self, x_coord: f32, y_coord: f32, piece: Piece, square_size: f32) {
+    pub fn draw_piece_at_point(&self, mut x_coord: f32, mut y_coord: f32, piece: Piece) {
+        x_coord -= self.square_size / 2.0;
+        y_coord -= self.square_size / 2.0;
+        self.draw_piece(x_coord, y_coord, piece);
+    }
+
+    fn draw_piece(&self, x_coord: f32, y_coord: f32, piece: Piece) {
         let rectangle = match piece {
             WHITE_KING => WK_RECTANGLE,
             WHITE_QUEEN => WQ_RECTANGLE,
@@ -71,7 +81,7 @@ impl View {
             y_coord,
             WHITE,
             DrawTextureParams {
-                dest_size: Some(Vec2::splat(square_size)),
+                dest_size: Some(Vec2::splat(self.square_size)),
                 source: Some(rectangle),
                 ..Default::default()
             },

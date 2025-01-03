@@ -1,5 +1,6 @@
 mod board;
 mod pieces;
+
 use board::Board;
 pub use board::{Column, Row, Square};
 use errors::InvalidFen;

@@ -10,6 +10,15 @@ impl BitBoard {
     }
 }
 
+impl BitBoard {
+    pub const fn bitscan_forward(&self) -> Option<Square> {
+        match self.0.trailing_zeros() {
+            64 => None,
+            x => Some(Square::from_u8(x as u8)),
+        }
+    }
+}
+
 impl From<Square> for BitBoard {
     fn from(value: Square) -> Self {
         SQUARES[value]

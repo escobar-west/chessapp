@@ -1,4 +1,4 @@
-use super::{bitboard::BitBoard, *};
+use super::{Board, Row, Square, bitboard::BitBoard};
 use crate::constants::DEFAULT_FEN;
 
 #[test]
