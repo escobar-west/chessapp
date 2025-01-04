@@ -1,12 +1,12 @@
 mod bitboard;
 mod iterators;
 mod mailbox;
-use std::ops::{Index, IndexMut};
 
 use crate::pieces::{Color, Piece, constants::*};
 use bitboard::BitBoard;
 use errors::{InvalidFen, InvalidValue};
 use mailbox::MailBox;
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Board {

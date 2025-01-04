@@ -70,9 +70,8 @@ pub mod constants {
 }
 
 mod errors {
-    use std::num::ParseIntError;
-
     use crate::board::errors::InvalidFen as InvalidBoardFen;
+    use std::num::ParseIntError;
     use thiserror::Error;
 
     #[derive(Error, Debug)]
