@@ -31,6 +31,14 @@ impl GameState {
         Ok(GameState { board, turn })
     }
 
+    pub fn get_sq(&self, square: Square) -> Option<Piece> {
+        self.board.get_sq(square)
+    }
+
+    pub fn make_illegal_move(&mut self, from: Square, to: Square) -> Option<Piece> {
+        self.board.move_piece(from, to)
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
         self.board.iter()
     }

@@ -8,6 +8,105 @@ use bitboard::BitBoard;
 use errors::{InvalidFen, InvalidValue};
 use mailbox::MailBox;
 
+impl Board {
+    pub fn new() -> Self {
+        Self {
+            white_pieces: PieceSet::new(Color::White),
+            black_pieces: PieceSet::new(Color::Black),
+            mailbox: MailBox::default(),
+        }
+    }
+
+    pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {
+        let piece_data = fen.split(' ').next().ok_or(InvalidFen::EmptyFen)?;
+        let row_data = piece_data.split('/');
+        if row_data.clone().count() != 8 {
+            return Err(InvalidFen::WrongRowCount);
+        }
+        let mut board = Self::new();
+        for (row_idx, row) in (0..8).rev().zip(row_data) {
+            let mut col_idx = 0;
+            for c in row.chars() {
+                if c.is_ascii_digit() {
+                    col_idx += c.to_digit(10).unwrap() as u8;
+                } else {
+                    let piece = Piece::try_from(c)?;
+                    let square =
+                        Square::from_coords(Column::from_u8(col_idx), Row::from_u8(row_idx));
+                    board.set_sq(square, piece);
+                    col_idx += 1;
+                }
+            }
+        }
+        Ok(board)
+    }
+
+    pub fn get_sq(&self, square: Square) -> Option<Piece> {
+        self.mailbox.get_sq(square)
+    }
+
+    pub fn clear_sq(&mut self, square: Square) -> Option<Piece> {
+        self.mailbox
+            .clear_sq(square)
+            .inspect(|&p| self.clear_piece_board(p, square.into()))
+    }
+
+    pub fn set_sq(&mut self, square: Square, piece: Piece) -> Option<Piece> {
+        let old_piece = self
+            .mailbox
+            .set_sq(square, piece)
+            .inspect(|&p| self.clear_piece_board(p, square.into()));
+        self.set_piece_board(piece, square.into());
+        old_piece
+    }
+
+    pub fn move_piece(&mut self, from: Square, to: Square) -> Option<Piece> {
+        self.clear_sq(from).and_then(|p| self.set_sq(to, p))
+    }
+
+    fn clear_piece_board(&mut self, piece: Piece, mask: BitBoard) {
+        *self.get_piece_board_mut(piece) &= !mask;
+    }
+
+    fn set_piece_board(&mut self, piece: Piece, mask: BitBoard) {
+        *self.get_piece_board_mut(piece) |= mask;
+    }
+
+    fn get_piece_board(&self, piece: Piece) -> BitBoard {
+        match piece {
+            WHITE_PAWN => self.white_pieces.pawns,
+            WHITE_ROOK => self.white_pieces.rooks,
+            WHITE_KNIGHT => self.white_pieces.knights,
+            WHITE_BISHOP => self.white_pieces.bishops,
+            WHITE_QUEEN => self.white_pieces.queens,
+            WHITE_KING => self.white_pieces.kings,
+            BLACK_PAWN => self.black_pieces.pawns,
+            BLACK_ROOK => self.black_pieces.rooks,
+            BLACK_KNIGHT => self.black_pieces.knights,
+            BLACK_BISHOP => self.black_pieces.bishops,
+            BLACK_QUEEN => self.black_pieces.queens,
+            BLACK_KING => self.black_pieces.kings,
+        }
+    }
+
+    fn get_piece_board_mut(&mut self, piece: Piece) -> &mut BitBoard {
+        match piece {
+            WHITE_PAWN => &mut self.white_pieces.pawns,
+            WHITE_ROOK => &mut self.white_pieces.rooks,
+            WHITE_KNIGHT => &mut self.white_pieces.knights,
+            WHITE_BISHOP => &mut self.white_pieces.bishops,
+            WHITE_QUEEN => &mut self.white_pieces.queens,
+            WHITE_KING => &mut self.white_pieces.kings,
+            BLACK_PAWN => &mut self.black_pieces.pawns,
+            BLACK_ROOK => &mut self.black_pieces.rooks,
+            BLACK_KNIGHT => &mut self.black_pieces.knights,
+            BLACK_BISHOP => &mut self.black_pieces.bishops,
+            BLACK_QUEEN => &mut self.black_pieces.queens,
+            BLACK_KING => &mut self.black_pieces.kings,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Column {
@@ -198,91 +297,6 @@ pub struct Board {
 impl Default for Board {
     fn default() -> Self {
         Self::try_from_fen(crate::constants::DEFAULT_FEN).unwrap()
-    }
-}
-
-impl Board {
-    pub fn new() -> Self {
-        Self {
-            white_pieces: PieceSet::new(Color::White),
-            black_pieces: PieceSet::new(Color::Black),
-            mailbox: MailBox::default(),
-        }
-    }
-
-    pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {
-        let piece_data = fen.split(' ').next().ok_or(InvalidFen::EmptyFen)?;
-        let row_data = piece_data.split('/');
-        if row_data.clone().count() != 8 {
-            return Err(InvalidFen::WrongRowCount);
-        }
-        let mut board = Self::new();
-        for (row_idx, row) in (0..8).rev().zip(row_data) {
-            let mut col_idx = 0;
-            for c in row.chars() {
-                if c.is_ascii_digit() {
-                    col_idx += c.to_digit(10).unwrap() as u8;
-                } else {
-                    let piece = Piece::try_from(c)?;
-                    let square =
-                        Square::from_coords(Column::from_u8(col_idx), Row::from_u8(row_idx));
-                    board.set_sq(square, piece);
-                    col_idx += 1;
-                }
-            }
-        }
-        Ok(board)
-    }
-
-    pub fn set_sq(&mut self, square: Square, piece: Piece) -> Option<Piece> {
-        let old_piece = self.mailbox.set_sq(square, piece);
-        if let Some(old_piece) = old_piece {
-            self.clear_piece_board(old_piece, square.into())
-        }
-        self.set_piece_board(piece, square.into());
-        old_piece
-    }
-
-    fn clear_piece_board(&mut self, piece: Piece, mask: BitBoard) {
-        *self.get_piece_board_mut(piece) &= !mask;
-    }
-
-    fn set_piece_board(&mut self, piece: Piece, mask: BitBoard) {
-        *self.get_piece_board_mut(piece) |= mask;
-    }
-
-    fn get_piece_board(&self, piece: Piece) -> BitBoard {
-        match piece {
-            WHITE_PAWN => self.white_pieces.pawns,
-            WHITE_ROOK => self.white_pieces.rooks,
-            WHITE_KNIGHT => self.white_pieces.knights,
-            WHITE_BISHOP => self.white_pieces.bishops,
-            WHITE_QUEEN => self.white_pieces.queens,
-            WHITE_KING => self.white_pieces.kings,
-            BLACK_PAWN => self.black_pieces.pawns,
-            BLACK_ROOK => self.black_pieces.rooks,
-            BLACK_KNIGHT => self.black_pieces.knights,
-            BLACK_BISHOP => self.black_pieces.bishops,
-            BLACK_QUEEN => self.black_pieces.queens,
-            BLACK_KING => self.black_pieces.kings,
-        }
-    }
-
-    fn get_piece_board_mut(&mut self, piece: Piece) -> &mut BitBoard {
-        match piece {
-            WHITE_PAWN => &mut self.white_pieces.pawns,
-            WHITE_ROOK => &mut self.white_pieces.rooks,
-            WHITE_KNIGHT => &mut self.white_pieces.knights,
-            WHITE_BISHOP => &mut self.white_pieces.bishops,
-            WHITE_QUEEN => &mut self.white_pieces.queens,
-            WHITE_KING => &mut self.white_pieces.kings,
-            BLACK_PAWN => &mut self.black_pieces.pawns,
-            BLACK_ROOK => &mut self.black_pieces.rooks,
-            BLACK_KNIGHT => &mut self.black_pieces.knights,
-            BLACK_BISHOP => &mut self.black_pieces.bishops,
-            BLACK_QUEEN => &mut self.black_pieces.queens,
-            BLACK_KING => &mut self.black_pieces.kings,
-        }
     }
 }
 
