@@ -136,8 +136,7 @@ pub enum Column {
 }
 
 impl Column {
-    const fn from_u8(val: u8) -> Self {
-        assert!(val < 8);
+    const unsafe fn from_u8(val: u8) -> Self {
         // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
@@ -151,10 +150,16 @@ impl TryFrom<u8> for Column {
     type Error = InvalidValue;
 
     fn try_from(val: u8) -> Result<Self, Self::Error> {
-        if val < 8 {
-            Ok(Self::from_u8(val))
-        } else {
-            Err(InvalidValue(val))
+        match val {
+            0 => Ok(Column::A),
+            1 => Ok(Column::B),
+            2 => Ok(Column::C),
+            3 => Ok(Column::D),
+            4 => Ok(Column::E),
+            5 => Ok(Column::F),
+            6 => Ok(Column::G),
+            7 => Ok(Column::H),
+            v => Err(InvalidValue(v)),
         }
     }
 }
@@ -187,8 +192,7 @@ pub enum Row {
 }
 
 impl Row {
-    const fn from_u8(val: u8) -> Self {
-        assert!(val < 8);
+    const unsafe fn from_u8(val: u8) -> Self {
         // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
@@ -202,10 +206,16 @@ impl TryFrom<u8> for Row {
     type Error = InvalidValue;
 
     fn try_from(val: u8) -> Result<Self, Self::Error> {
-        if val < 8 {
-            Ok(Self::from_u8(val))
-        } else {
-            Err(InvalidValue(val))
+        match val {
+            0 => Ok(Row::One),
+            1 => Ok(Row::Two),
+            2 => Ok(Row::Three),
+            3 => Ok(Row::Four),
+            4 => Ok(Row::Five),
+            5 => Ok(Row::Six),
+            6 => Ok(Row::Seven),
+            7 => Ok(Row::Eight),
+            v => Err(InvalidValue(v)),
         }
     }
 }
@@ -240,19 +250,21 @@ pub enum Square {
 
 impl Square {
     pub const fn from_coords(col: Column, row: Row) -> Self {
-        Self::from_u8(8 * row as u8 + col as u8)
+        // Safety: 8 * row + col < 64
+        unsafe { Self::from_u8(8 * row as u8 + col as u8) }
     }
 
     pub const fn col(self) -> Column {
-        Column::from_u8(self as u8 & 7)
+        // Safety: self & 7 < 8
+        unsafe { Column::from_u8(self as u8 & 7) }
     }
 
     pub const fn row(self) -> Row {
-        Row::from_u8(self as u8 >> 3)
+        // Safety: self >> 3 < 8
+        unsafe { Row::from_u8(self as u8 >> 3) }
     }
 
-    const fn from_u8(val: u8) -> Self {
-        assert!(val < 64);
+    const unsafe fn from_u8(val: u8) -> Self {
         // Safety: val must be < 64
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }

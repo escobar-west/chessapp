@@ -28,7 +28,8 @@ impl BitBoard {
     pub const fn bitscan_forward(&self) -> Option<Square> {
         match self.0.trailing_zeros() {
             64 => None,
-            x => Some(Square::from_u8(x as u8)),
+            // Safety: x < 64
+            x => unsafe { Some(Square::from_u8(x as u8)) },
         }
     }
 }
@@ -101,8 +102,8 @@ const fn gen_sqs() -> [BitBoard; 64] {
     let mut array = [BitBoard::new(0); 64];
     let mut counter = 0;
     while counter < 64 {
-        // Safety: counter guaranteed to be < 64
-        array[counter as usize] = Square::from_u8(counter).as_bitboard();
+        // Safety: counter < 64
+        array[counter as usize] = unsafe { Square::from_u8(counter).as_bitboard() };
         counter += 1;
     }
     array
@@ -112,8 +113,8 @@ const fn gen_king_moves() -> [BitBoard; 64] {
     let mut array = [BitBoard::new(0); 64];
     let mut counter = 0;
     while counter < 64 {
-        // Safety: counter guaranteed to be < 64
-        let square = Square::from_u8(counter);
+        // Safety: counter < 64
+        let square = unsafe { Square::from_u8(counter) };
         array[counter as usize] = BitBoard::king_attack_mask(square);
         counter += 1;
     }

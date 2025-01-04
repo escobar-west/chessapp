@@ -66,7 +66,7 @@ impl GameState {
 pub mod constants {
     pub use crate::pieces::constants::*;
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w KQkq - 0 1";
+    pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
 }
 
 mod errors {
