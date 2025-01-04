@@ -1,6 +1,9 @@
 mod view;
 use chesslib::{GameState, constants::*};
-use macroquad::{input::mouse_position, window::next_frame};
+use macroquad::{
+    input::{MouseButton, is_mouse_button_down, is_mouse_button_pressed, is_mouse_button_released},
+    window::next_frame,
+};
 
 #[macroquad::main("Chess")]
 async fn main() {
@@ -10,10 +13,21 @@ async fn main() {
         view.update_screen();
         view.draw_board();
         for (square, piece) in gs.iter() {
-            view.draw_piece_at_coords(square.col(), square.row(), piece);
+            view.draw_piece_at_square(piece, square);
         }
-        let (x, y) = mouse_position();
-        view.draw_piece_at_point(x, y, WHITE_KING);
+        if is_mouse_button_pressed(MouseButton::Left) {
+            println!("start press")
+        }
+        if is_mouse_button_down(MouseButton::Left) {
+            println!("pressing button")
+        }
+        if is_mouse_button_released(MouseButton::Left) {
+            println!("releasing button")
+        }
+        if let Some(s) = view.get_square_at_mouse() {
+            view.draw_piece_at_square(BLACK_KING, s);
+        };
+        view.draw_piece_at_mouse(WHITE_KING);
         next_frame().await
     }
 }

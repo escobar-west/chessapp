@@ -1,9 +1,10 @@
-use chesslib::{Column, Piece, Row, constants::*};
+use chesslib::{Piece, Square, constants::*};
 use macroquad::{
     color::WHITE,
+    input::mouse_position,
     math::{Rect, Vec2},
     texture::{DrawTextureParams, Texture2D, draw_texture_ex, load_texture},
-    window::{clear_background, screen_height, screen_width},
+    window::{screen_height, screen_width},
 };
 
 pub struct View {
@@ -11,6 +12,8 @@ pub struct View {
     height: f32,
     board_size: f32,
     square_size: f32,
+    mouse_x: f32,
+    mouse_y: f32,
     board_texture: Texture2D,
     piece_texture: Texture2D,
 }
@@ -23,11 +26,14 @@ impl View {
         let height = screen_height();
         let board_size = width.min(height);
         let square_size = board_size / 8.0;
+        let (mouse_x, mouse_y) = mouse_position();
         Self {
             width,
             height,
             board_size,
             square_size,
+            mouse_x,
+            mouse_y,
             board_texture,
             piece_texture,
         }
@@ -38,29 +44,46 @@ impl View {
         self.height = screen_height();
         self.board_size = self.width.min(self.height);
         self.square_size = self.board_size / 8.0;
+        (self.mouse_x, self.mouse_y) = mouse_position();
     }
 
     pub fn draw_board(&self) {
-        clear_background(WHITE);
         draw_texture_ex(&self.board_texture, 0.0, 0.0, WHITE, DrawTextureParams {
             dest_size: Some(Vec2::splat(self.board_size)),
             ..Default::default()
         });
     }
 
-    pub fn draw_piece_at_coords(&self, col: Column, row: Row, piece: Piece) {
-        let x_coord = col as u8 as f32 * self.square_size;
-        let y_coord = (7 - row as u8) as f32 * self.square_size;
-        self.draw_piece(x_coord, y_coord, piece);
+    pub fn get_square_at_mouse(&self) -> Option<Square> {
+        if self.mouse_x <= 0.0
+            || self.mouse_y <= 0.0
+            || self.board_size <= self.mouse_x
+            || self.board_size <= self.mouse_y
+        {
+            return None;
+        }
+        let (x, y) = (
+            (self.mouse_x / self.square_size).floor() as u8,
+            ((self.board_size - self.mouse_y) / self.square_size).floor() as u8,
+        );
+        let col = x.try_into().ok()?;
+        let row = y.try_into().ok()?;
+        Some(Square::from_coords(col, row))
     }
 
-    pub fn draw_piece_at_point(&self, mut x_coord: f32, mut y_coord: f32, piece: Piece) {
-        x_coord -= self.square_size / 2.0;
-        y_coord -= self.square_size / 2.0;
-        self.draw_piece(x_coord, y_coord, piece);
+    pub fn draw_piece_at_mouse(&self, piece: Piece) {
+        let x = self.mouse_x - self.square_size / 2.0;
+        let y = self.mouse_y - self.square_size / 2.0;
+        self.draw_piece_at_coords(piece, x, y);
     }
 
-    fn draw_piece(&self, x_coord: f32, y_coord: f32, piece: Piece) {
+    pub fn draw_piece_at_square(&self, piece: Piece, square: Square) {
+        let x = square.col() as u8 as f32 * self.square_size;
+        let y = (7 - square.row() as u8) as f32 * self.square_size;
+        self.draw_piece_at_coords(piece, x, y);
+    }
+
+    fn draw_piece_at_coords(&self, piece: Piece, x_coord: f32, y_coord: f32) {
         let rectangle = match piece {
             WHITE_KING => WK_RECTANGLE,
             WHITE_QUEEN => WQ_RECTANGLE,

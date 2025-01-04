@@ -5,47 +5,8 @@ use std::ops::{Index, IndexMut};
 
 use crate::pieces::{Color, Piece, constants::*};
 use bitboard::BitBoard;
-use errors::InvalidFen;
+use errors::{InvalidFen, InvalidValue};
 use mailbox::MailBox;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Row {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-}
-
-impl Row {
-    const fn from_u8(val: u8) -> Self {
-        assert!(val < 8);
-        // Safety: code will panic if val > 7
-        unsafe { std::mem::transmute(val) }
-    }
-
-    const fn as_bitboard(self) -> BitBoard {
-        BitBoard::new(0xff << (8 * self as u8))
-    }
-}
-
-impl<T> Index<Row> for [T] {
-    type Output = T;
-
-    fn index(&self, index: Row) -> &Self::Output {
-        &self[index as usize]
-    }
-}
-
-impl<T> IndexMut<Row> for [T] {
-    fn index_mut(&mut self, index: Row) -> &mut Self::Output {
-        &mut self[index as usize]
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -64,11 +25,23 @@ impl Column {
     const fn from_u8(val: u8) -> Self {
         assert!(val < 8);
         // Safety: code will panic if val > 7
-        unsafe { std::mem::transmute(val) }
+        unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
     const fn as_bitboard(self) -> BitBoard {
         BitBoard::new(0x0101010101010101 << self as u8)
+    }
+}
+
+impl TryFrom<u8> for Column {
+    type Error = InvalidValue;
+
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        if val < 8 {
+            Ok(unsafe { std::mem::transmute::<u8, Self>(val) })
+        } else {
+            Err(InvalidValue(val))
+        }
     }
 }
 
@@ -82,6 +55,57 @@ impl<T> Index<Column> for [T] {
 
 impl<T> IndexMut<Column> for [T] {
     fn index_mut(&mut self, index: Column) -> &mut Self::Output {
+        &mut self[index as usize]
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Row {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+}
+
+impl Row {
+    const fn from_u8(val: u8) -> Self {
+        assert!(val < 8);
+        // Safety: code will panic if val > 7
+        unsafe { std::mem::transmute::<u8, Self>(val) }
+    }
+
+    const fn as_bitboard(self) -> BitBoard {
+        BitBoard::new(0xff << (8 * self as u8))
+    }
+}
+
+impl TryFrom<u8> for Row {
+    type Error = InvalidValue;
+
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        if val < 8 {
+            Ok(unsafe { std::mem::transmute::<u8, Self>(val) })
+        } else {
+            Err(InvalidValue(val))
+        }
+    }
+}
+
+impl<T> Index<Row> for [T] {
+    type Output = T;
+
+    fn index(&self, index: Row) -> &Self::Output {
+        &self[index as usize]
+    }
+}
+
+impl<T> IndexMut<Row> for [T] {
+    fn index_mut(&mut self, index: Row) -> &mut Self::Output {
         &mut self[index as usize]
     }
 }
@@ -103,7 +127,7 @@ pub enum Square {
 impl Square {
     pub const fn from_coords(col: Column, row: Row) -> Self {
         // Safety: Row and Col both only range from 0 to 7
-        unsafe { std::mem::transmute(8 * row as u8 + col as u8) }
+        unsafe { std::mem::transmute::<u8, Self>(8 * row as u8 + col as u8) }
     }
 
     pub const fn col(self) -> Column {
@@ -117,7 +141,7 @@ impl Square {
     const fn from_u8(val: u8) -> Self {
         assert!(val < 64);
         // Safety: code will panic if val > 63
-        unsafe { std::mem::transmute(val) }
+        unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
     const fn as_bitboard(self) -> BitBoard {
@@ -275,6 +299,10 @@ pub mod errors {
         #[error(transparent)]
         InvalidChar(#[from] InvalidChar),
     }
+
+    #[derive(Error, Debug)]
+    #[error("Invalid input: {0}")]
+    pub struct InvalidValue(pub u8);
 }
 
 #[cfg(test)]
