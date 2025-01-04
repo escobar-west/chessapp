@@ -1,5 +1,6 @@
 use super::{Board, Row, Square, bitboard::BitBoard};
 use crate::constants::DEFAULT_FEN;
+use crate::pieces::constants::*;
 
 #[test]
 fn test_default_fen() {
@@ -57,9 +58,46 @@ fn test_default_fen() {
     let black_mask = BitBoard::from(Row::Seven) | BitBoard::from(Row::Eight);
     //assert_eq!(board.black_occupied, black_mask);
 
-    let occ_mask = white_mask | black_mask;
+    let _occ_mask = white_mask | black_mask;
     //assert_eq!(board.occupied, occ_mask);
 
     //let to_fen = board.to_fen();
     //assert_eq!(to_fen, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+}
+
+#[test]
+fn test_clear_and_set_sq() {
+    let fen = DEFAULT_FEN;
+    let mut board = Board::try_from_fen(fen).unwrap();
+    board.clear_sq(Square::A8);
+
+    let rook_mask = BitBoard::from(Square::A1) | Square::H1.into() | Square::H8.into();
+    assert_eq!(
+        board.white_pieces.rooks | board.black_pieces.rooks,
+        rook_mask
+    );
+
+    let piece = board.set_sq(Square::H1, BLACK_QUEEN);
+    assert_eq!(piece, Some(WHITE_ROOK));
+
+    let rook_mask = BitBoard::from(Square::A1) | Square::H8.into();
+    assert_eq!(
+        board.white_pieces.rooks | board.black_pieces.rooks,
+        rook_mask
+    );
+
+    let queen_mask = BitBoard::from(Square::D1) | Square::H1.into() | Square::D8.into();
+    assert_eq!(
+        board.white_pieces.queens | board.black_pieces.queens,
+        queen_mask
+    );
+
+    let _white_mask =
+        BitBoard::from(Row::One) | BitBoard::from(Row::Two) ^ BitBoard::from(Square::H1);
+    //assert_eq!(board.white_occupied, white_mask);
+
+    let _black_mask =
+        (BitBoard::from(Row::Seven) | BitBoard::from(Row::Eight) | BitBoard::from(Square::H1))
+            ^ BitBoard::from(Square::A8);
+    //assert_eq!(board.black_occupied, black_mask);
 }

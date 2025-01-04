@@ -101,6 +101,7 @@ const fn gen_sqs() -> [BitBoard; 64] {
     let mut array = [BitBoard::new(0); 64];
     let mut counter = 0;
     while counter < 64 {
+        // Safety: counter guaranteed to be < 64
         array[counter as usize] = Square::from_u8(counter).as_bitboard();
         counter += 1;
     }
@@ -111,6 +112,7 @@ const fn gen_king_moves() -> [BitBoard; 64] {
     let mut array = [BitBoard::new(0); 64];
     let mut counter = 0;
     while counter < 64 {
+        // Safety: counter guaranteed to be < 64
         let square = Square::from_u8(counter);
         array[counter as usize] = BitBoard::king_attack_mask(square);
         counter += 1;
@@ -142,3 +144,61 @@ static ROWS: [BitBoard; 8] = [
 
 static SQUARES: [BitBoard; 64] = gen_sqs();
 static KING_MOVES: [BitBoard; 64] = gen_king_moves();
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_king_moves() {
+        let king_moves = BitBoard::king_moves(Square::A1);
+        let expected = BitBoard::from(Square::B1) | Square::A2.into() | Square::B2.into();
+        assert_eq!(king_moves, expected);
+
+        let king_moves = BitBoard::king_moves(Square::G7);
+        let expected = BitBoard::from(Square::F6)
+            | Square::F7.into()
+            | Square::F8.into()
+            | Square::G6.into()
+            | Square::G8.into()
+            | Square::H6.into()
+            | Square::H7.into()
+            | Square::H8.into();
+        assert_eq!(king_moves, expected);
+    }
+
+    #[test]
+    fn test_bitscan_forward() {
+        let bitboard = BitBoard::from(Row::One);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, Some(Square::A1));
+
+        let bitboard = BitBoard::from(Row::Eight);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, Some(Square::A8));
+
+        let bitboard = BitBoard::from(Column::A);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, Some(Square::A1));
+
+        let bitboard = BitBoard::from(Column::H);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, Some(Square::H1));
+
+        let bitboard = BitBoard::from(Square::A1);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, Some(Square::A1));
+
+        let bitboard = BitBoard::from(Square::H8);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, Some(Square::H8));
+
+        let bitboard = BitBoard::new(std::u64::MAX);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, Some(Square::A1));
+
+        let bitboard = BitBoard::new(0);
+        let lsb = bitboard.bitscan_forward();
+        assert_eq!(lsb, None);
+    }
+}

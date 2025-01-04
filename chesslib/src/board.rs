@@ -67,8 +67,10 @@ impl Board {
                     col_idx += c.to_digit(10).unwrap() as u8;
                 } else {
                     let piece = Piece::try_from(c)?;
-                    let square =
-                        Square::from_coords(Column::from_u8(col_idx), Row::from_u8(row_idx));
+                    let square = Square::from_coords(
+                        col_idx.try_into().unwrap(),
+                        row_idx.try_into().unwrap(),
+                    );
                     board.set_sq(square, piece);
                     col_idx += 1;
                 }
@@ -136,7 +138,7 @@ pub enum Column {
 impl Column {
     const fn from_u8(val: u8) -> Self {
         assert!(val < 8);
-        // Safety: code will panic if val > 7
+        // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
@@ -150,7 +152,7 @@ impl TryFrom<u8> for Column {
 
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         if val < 8 {
-            Ok(unsafe { std::mem::transmute::<u8, Self>(val) })
+            Ok(Self::from_u8(val))
         } else {
             Err(InvalidValue(val))
         }
@@ -187,7 +189,7 @@ pub enum Row {
 impl Row {
     const fn from_u8(val: u8) -> Self {
         assert!(val < 8);
-        // Safety: code will panic if val > 7
+        // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
@@ -201,7 +203,7 @@ impl TryFrom<u8> for Row {
 
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         if val < 8 {
-            Ok(unsafe { std::mem::transmute::<u8, Self>(val) })
+            Ok(Self::from_u8(val))
         } else {
             Err(InvalidValue(val))
         }
@@ -238,8 +240,7 @@ pub enum Square {
 
 impl Square {
     pub const fn from_coords(col: Column, row: Row) -> Self {
-        // Safety: Row and Col both only range from 0 to 7
-        unsafe { std::mem::transmute::<u8, Self>(8 * row as u8 + col as u8) }
+        Self::from_u8(8 * row as u8 + col as u8)
     }
 
     pub const fn col(self) -> Column {
@@ -252,7 +253,7 @@ impl Square {
 
     const fn from_u8(val: u8) -> Self {
         assert!(val < 64);
-        // Safety: code will panic if val > 63
+        // Safety: val must be < 64
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
