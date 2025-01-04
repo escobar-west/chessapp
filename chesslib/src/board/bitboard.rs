@@ -8,6 +8,17 @@ impl BitBoard {
     pub const fn new(value: u64) -> Self {
         Self(value)
     }
+
+    pub fn king_moves(square: Square) -> Self {
+        KING_MOVES[square]
+    }
+
+    const fn king_attack_mask(square: Square) -> Self {
+        let square_mask = square.as_bitboard().0;
+        let lateral_mask = ((square_mask << 1) & NOT_COL_A) | ((square_mask >> 1) & NOT_COL_H);
+        let screen_mask = lateral_mask | square_mask;
+        Self(lateral_mask | (screen_mask << 8) | (screen_mask >> 8))
+    }
 }
 
 impl BitBoard {
@@ -83,6 +94,27 @@ impl Not for BitBoard {
     }
 }
 
+const fn gen_sqs() -> [BitBoard; 64] {
+    let mut array = [BitBoard::new(0); 64];
+    let mut counter = 0;
+    while counter < 64 {
+        array[counter as usize] = Square::from_u8(counter).as_bitboard();
+        counter += 1;
+    }
+    array
+}
+
+const fn gen_king_moves() -> [BitBoard; 64] {
+    let mut array = [BitBoard::new(0); 64];
+    let mut counter = 0;
+    while counter < 64 {
+        let square = Square::from_u8(counter);
+        array[counter as usize] = BitBoard::king_attack_mask(square);
+        counter += 1;
+    }
+    array
+}
+
 static COLUMNS: [BitBoard; 8] = [
     Column::A.as_bitboard(),
     Column::B.as_bitboard(),
@@ -106,13 +138,7 @@ static ROWS: [BitBoard; 8] = [
 ];
 
 static SQUARES: [BitBoard; 64] = gen_sqs();
+static KING_MOVES: [BitBoard; 64] = gen_king_moves();
 
-const fn gen_sqs() -> [BitBoard; 64] {
-    let mut array = [BitBoard::new(0); 64];
-    let mut counter = 0;
-    while counter < 64 {
-        array[counter as usize] = Square::from_u8(counter).as_bitboard();
-        counter += 1;
-    }
-    array
-}
+const NOT_COL_A: u64 = 0xfefefefefefefefe;
+const NOT_COL_H: u64 = 0x7f7f7f7f7f7f7f7f;
