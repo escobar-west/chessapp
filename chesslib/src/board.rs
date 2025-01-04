@@ -17,6 +17,29 @@ impl Board {
         }
     }
 
+    pub fn get_sq(&self, square: Square) -> Option<Piece> {
+        self.mailbox.get_sq(square)
+    }
+
+    pub fn clear_sq(&mut self, square: Square) -> Option<Piece> {
+        self.mailbox
+            .clear_sq(square)
+            .inspect(|&p| self.clear_piece_board(p, square.into()))
+    }
+
+    pub fn set_sq(&mut self, square: Square, piece: Piece) -> Option<Piece> {
+        let old_piece = self
+            .mailbox
+            .set_sq(square, piece)
+            .inspect(|&p| self.clear_piece_board(p, square.into()));
+        self.set_piece_board(piece, square.into());
+        old_piece
+    }
+
+    pub fn move_piece(&mut self, from: Square, to: Square) -> Option<Piece> {
+        self.clear_sq(from).and_then(|p| self.set_sq(to, p))
+    }
+
     pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {
         let piece_data = fen.split(' ').next().ok_or(InvalidFen::EmptyFen)?;
         let row_data = piece_data.split('/');
@@ -39,29 +62,6 @@ impl Board {
             }
         }
         Ok(board)
-    }
-
-    pub fn get_sq(&self, square: Square) -> Option<Piece> {
-        self.mailbox.get_sq(square)
-    }
-
-    pub fn clear_sq(&mut self, square: Square) -> Option<Piece> {
-        self.mailbox
-            .clear_sq(square)
-            .inspect(|&p| self.clear_piece_board(p, square.into()))
-    }
-
-    pub fn set_sq(&mut self, square: Square, piece: Piece) -> Option<Piece> {
-        let old_piece = self
-            .mailbox
-            .set_sq(square, piece)
-            .inspect(|&p| self.clear_piece_board(p, square.into()));
-        self.set_piece_board(piece, square.into());
-        old_piece
-    }
-
-    pub fn move_piece(&mut self, from: Square, to: Square) -> Option<Piece> {
-        self.clear_sq(from).and_then(|p| self.set_sq(to, p))
     }
 
     fn clear_piece_board(&mut self, piece: Piece, mask: BitBoard) {
