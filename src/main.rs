@@ -1,12 +1,13 @@
 mod view;
-use chesslib::{GameState, Piece, Square};
+use chesslib::{GameState, Piece, Square, constants::KINGS_ONLY};
 use macroquad::input::{
     MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position,
 };
 
 #[macroquad::main("Chess")]
 async fn main() {
-    let mut gs = GameState::default();
+    //let mut gs = GameState::default();
+    let mut gs = GameState::try_from_fen(KINGS_ONLY).unwrap();
     let mut view = view::View::new().await;
     let mut last_pressed: Option<LastPressed> = None;
     loop {

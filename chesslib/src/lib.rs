@@ -7,6 +7,7 @@ pub use board::{Column, Row, Square};
 use errors::InvalidFen;
 pub use pieces::{Color, Piece};
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct GameState {
     board: Board,
     turn: Color,
@@ -48,7 +49,12 @@ impl GameState {
 
     pub fn make_illegal_move(&mut self, from: Square, to: Square) -> Option<Piece> {
         let piece = self.board.move_piece(from, to);
+        if self.turn == Color::Black {
+            self.full_move += 1;
+        }
         self.turn = !self.turn;
+        #[cfg(debug_assertions)]
+        println!("{self:#?}");
         piece
     }
 
@@ -60,6 +66,7 @@ impl GameState {
 pub mod constants {
     pub use crate::pieces::constants::*;
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w KQkq - 0 1";
 }
 
 mod errors {

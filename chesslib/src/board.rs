@@ -8,6 +8,19 @@ use bitboard::BitBoard;
 use errors::{InvalidFen, InvalidValue};
 use mailbox::MailBox;
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct Board {
+    white_pieces: PieceSet,
+    black_pieces: PieceSet,
+    mailbox: MailBox,
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        Self::try_from_fen(crate::constants::DEFAULT_FEN).unwrap()
+    }
+}
+
 impl Board {
     pub fn new() -> Self {
         Self {
@@ -284,19 +297,6 @@ impl PieceSet {
             queens: BitBoard::default(),
             kings: BitBoard::default(),
         }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Board {
-    white_pieces: PieceSet,
-    black_pieces: PieceSet,
-    mailbox: MailBox,
-}
-
-impl Default for Board {
-    fn default() -> Self {
-        Self::try_from_fen(crate::constants::DEFAULT_FEN).unwrap()
     }
 }
 

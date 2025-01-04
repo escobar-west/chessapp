@@ -4,6 +4,9 @@ use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, N
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct BitBoard(u64);
 
+const NOT_COL_A: u64 = 0xfefefefefefefefe;
+const NOT_COL_H: u64 = 0x7f7f7f7f7f7f7f7f;
+
 impl BitBoard {
     pub const fn new(value: u64) -> Self {
         Self(value)
@@ -139,6 +142,3 @@ static ROWS: [BitBoard; 8] = [
 
 static SQUARES: [BitBoard; 64] = gen_sqs();
 static KING_MOVES: [BitBoard; 64] = gen_king_moves();
-
-const NOT_COL_A: u64 = 0xfefefefefefefefe;
-const NOT_COL_H: u64 = 0x7f7f7f7f7f7f7f7f;
