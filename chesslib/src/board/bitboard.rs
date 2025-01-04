@@ -83,18 +83,7 @@ impl Not for BitBoard {
     }
 }
 
-pub static ROWS: [BitBoard; 8] = [
-    Row::One.as_bitboard(),
-    Row::Two.as_bitboard(),
-    Row::Three.as_bitboard(),
-    Row::Four.as_bitboard(),
-    Row::Five.as_bitboard(),
-    Row::Six.as_bitboard(),
-    Row::Seven.as_bitboard(),
-    Row::Eight.as_bitboard(),
-];
-
-pub static COLUMNS: [BitBoard; 8] = [
+static COLUMNS: [BitBoard; 8] = [
     Column::A.as_bitboard(),
     Column::B.as_bitboard(),
     Column::C.as_bitboard(),
@@ -103,6 +92,17 @@ pub static COLUMNS: [BitBoard; 8] = [
     Column::F.as_bitboard(),
     Column::G.as_bitboard(),
     Column::H.as_bitboard(),
+];
+
+static ROWS: [BitBoard; 8] = [
+    Row::One.as_bitboard(),
+    Row::Two.as_bitboard(),
+    Row::Three.as_bitboard(),
+    Row::Four.as_bitboard(),
+    Row::Five.as_bitboard(),
+    Row::Six.as_bitboard(),
+    Row::Seven.as_bitboard(),
+    Row::Eight.as_bitboard(),
 ];
 
 static SQUARES: [BitBoard; 64] = gen_sqs();

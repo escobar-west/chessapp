@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod board;
 mod pieces;
 
@@ -28,6 +29,10 @@ impl GameState {
             s => return Err(InvalidFen::InvalidColor(s.map(String::from))),
         };
         Ok(GameState { board, turn })
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
+        self.board.iter()
     }
 }
 

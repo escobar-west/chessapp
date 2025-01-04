@@ -1,5 +1,5 @@
 mod bitboard;
-pub mod iterators;
+mod iterators;
 mod mailbox;
 use std::ops::{Index, IndexMut};
 
@@ -106,12 +106,12 @@ impl Square {
         unsafe { std::mem::transmute(8 * row as u8 + col as u8) }
     }
 
-    pub const fn row(self) -> Row {
-        Row::from_u8(self as u8 >> 3)
-    }
-
     pub const fn col(self) -> Column {
         Column::from_u8(self as u8 & 7)
+    }
+
+    pub const fn row(self) -> Row {
+        Row::from_u8(self as u8 >> 3)
     }
 
     const fn from_u8(val: u8) -> Self {
