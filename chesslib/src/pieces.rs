@@ -3,24 +3,6 @@ use errors::InvalidChar;
 use std::ops::Not;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Color {
-    White,
-    Black,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Figure {
-    Pawn,
-    Rook,
-    Knight,
-    Bishop,
-    Queen,
-    King,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Piece {
     pub color: Color,
     pub figure: Figure,
@@ -64,6 +46,13 @@ impl TryFrom<char> for Piece {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Color {
+    White,
+    Black,
+}
+
 impl Not for Color {
     type Output = Self;
     fn not(self) -> Self::Output {
@@ -72,6 +61,17 @@ impl Not for Color {
             Self::Black => Self::White,
         }
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Figure {
+    Pawn,
+    Rook,
+    Knight,
+    Bishop,
+    Queen,
+    King,
 }
 
 pub mod errors {

@@ -10,6 +10,8 @@ pub use pieces::{Color, Piece};
 pub struct GameState {
     board: Board,
     turn: Color,
+    half_move: u16,
+    full_move: u16,
 }
 
 impl Default for GameState {
@@ -23,12 +25,21 @@ impl GameState {
         let mut fen_iter = fen.split(' ');
         let position_fen = fen_iter.next().ok_or(InvalidFen::EmptyFen)?;
         let board = Board::try_from_fen(position_fen)?;
-        let turn = match fen_iter.next() {
-            Some("w") => Color::White,
-            Some("b") => Color::Black,
-            s => return Err(InvalidFen::InvalidColor(s.map(String::from))),
+        let turn = match fen_iter.next().ok_or(InvalidFen::EmptyFen)? {
+            "w" => Color::White,
+            "b" => Color::Black,
+            s => return Err(InvalidFen::InvalidColor(s.to_owned())),
         };
-        Ok(GameState { board, turn })
+        let _castle_fen = fen_iter.next().ok_or(InvalidFen::EmptyFen)?;
+        let _ep_fen = fen_iter.next().ok_or(InvalidFen::EmptyFen)?;
+        let half_move = fen_iter.next().ok_or(InvalidFen::EmptyFen)?.parse()?;
+        let full_move = fen_iter.next().ok_or(InvalidFen::EmptyFen)?.parse()?;
+        Ok(GameState {
+            board,
+            turn,
+            half_move,
+            full_move,
+        })
     }
 
     pub fn get_sq(&self, square: Square) -> Option<Piece> {
@@ -36,7 +47,9 @@ impl GameState {
     }
 
     pub fn make_illegal_move(&mut self, from: Square, to: Square) -> Option<Piece> {
-        self.board.move_piece(from, to)
+        let piece = self.board.move_piece(from, to);
+        self.turn = !self.turn;
+        piece
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
@@ -50,16 +63,20 @@ pub mod constants {
 }
 
 mod errors {
+    use std::num::ParseIntError;
+
     use crate::board::errors::InvalidFen as InvalidBoardFen;
     use thiserror::Error;
 
     #[derive(Error, Debug)]
     pub enum InvalidFen {
-        #[error("Empty FEN")]
+        #[error("Empty FEN entry")]
         EmptyFen,
         #[error("Invalid color: {0:#?}")]
-        InvalidColor(Option<String>),
+        InvalidColor(String),
         #[error(transparent)]
         InvalidBoardFen(#[from] InvalidBoardFen),
+        #[error(transparent)]
+        ParseIntError(#[from] ParseIntError),
     }
 }
