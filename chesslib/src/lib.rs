@@ -4,7 +4,7 @@ mod pieces;
 
 use board::Board;
 pub use board::{Column, Row, Square};
-use errors::InvalidFen;
+pub use errors::InvalidFen;
 pub use pieces::{Color, Piece};
 
 #[derive(Debug, PartialEq, Eq)]

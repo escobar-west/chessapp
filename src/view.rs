@@ -6,6 +6,8 @@ use macroquad::{
     window::{next_frame, screen_height, screen_width},
 };
 
+type MousePos = (f32, f32);
+
 pub struct View {
     width: f32,
     height: f32,
@@ -51,7 +53,7 @@ impl View {
         });
     }
 
-    pub fn get_square_at_point(&self, x: f32, y: f32) -> Option<Square> {
+    pub fn get_square_at_point(&self, (x, y): MousePos) -> Option<Square> {
         if x <= 0.0 || y <= 0.0 || self.board_size <= x || self.board_size <= y {
             return None;
         }
@@ -64,7 +66,7 @@ impl View {
         Some(Square::from_coords(col, row))
     }
 
-    pub fn draw_piece_at_point(&self, piece: Piece, x: f32, y: f32) {
+    pub fn draw_piece_at_point(&self, piece: Piece, (x, y): MousePos) {
         let top_left_x = x - self.square_size / 2.0;
         let top_left_y = y - self.square_size / 2.0;
         self.draw_piece_at(piece, top_left_x, top_left_y);

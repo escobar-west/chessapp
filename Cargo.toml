@@ -9,3 +9,5 @@ edition = "2024"
 [dependencies]
 chesslib = { path = "chesslib" }
 macroquad = "0.4.13"
+thiserror = "2.0.9"
+anyhow = "1.0.95"
