@@ -9,7 +9,6 @@ use view::View;
 
 #[macroquad::main("Chess")]
 async fn main() -> Result<(), anyhow::Error> {
-    //let mut gs = GameState::default();
     let mut app = App::new(KINGS_ONLY).await?;
     loop {
         app.update_state();
@@ -48,9 +47,11 @@ impl App {
         }
         if is_mouse_button_released(MouseButton::Left) {
             if let Some(last_pressed) = self.last_pressed {
-                self.view
-                    .get_square_at_point(self.mouse)
-                    .and_then(|to| self.gs.make_illegal_move(last_pressed.square, to));
+                if let Some(to) = self.view.get_square_at_point(self.mouse) {
+                    if let Err(res) = self.gs.make_move(last_pressed.square, to) {
+                        println!("{res:?}");
+                    }
+                };
             }
             self.last_pressed = None;
         }

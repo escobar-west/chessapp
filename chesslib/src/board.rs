@@ -2,7 +2,7 @@ mod bitboard;
 mod iterators;
 mod mailbox;
 
-use crate::pieces::{Color, Piece, constants::*};
+use crate::pieces::{Color, Figure, Piece, constants::*};
 use bitboard::BitBoard;
 use errors::{InvalidFen, InvalidValue};
 use mailbox::MailBox;
@@ -53,6 +53,11 @@ impl Board {
         self.clear_sq(from).and_then(|p| self.set_sq(to, p))
     }
 
+    pub fn is_pseudolegal(&self, piece: Piece, from: Square, to: Square) -> bool {
+        let move_mask = self.get_move_mask(piece, from);
+        move_mask & to.into() != BitBoard::default()
+    }
+
     pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {
         let piece_data = fen.split(' ').next().ok_or(InvalidFen::EmptyFen)?;
         let row_data = piece_data.split('/');
@@ -77,6 +82,13 @@ impl Board {
             }
         }
         Ok(board)
+    }
+
+    fn get_move_mask(&self, piece: Piece, from: Square) -> BitBoard {
+        match piece.figure {
+            Figure::King => BitBoard::king_moves(from),
+            _ => todo!(),
+        }
     }
 
     fn clear_piece_board(&mut self, piece: Piece, mask: BitBoard) {
@@ -141,7 +153,7 @@ impl Column {
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
-    const fn as_bitboard(self) -> BitBoard {
+    const fn bitboard(self) -> BitBoard {
         BitBoard::new(0x0101010101010101 << self as u8)
     }
 }
@@ -197,7 +209,7 @@ impl Row {
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
-    const fn as_bitboard(self) -> BitBoard {
+    const fn bitboard(self) -> BitBoard {
         BitBoard::new(0xff << (8 * self as u8))
     }
 }
@@ -269,7 +281,7 @@ impl Square {
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
 
-    const fn as_bitboard(self) -> BitBoard {
+    const fn bitboard(self) -> BitBoard {
         BitBoard::new(1 << self as u8)
     }
 }

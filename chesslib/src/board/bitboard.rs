@@ -25,7 +25,7 @@ impl BitBoard {
     }
 
     const fn king_attack_mask(square: Square) -> Self {
-        let square_mask = square.as_bitboard().0;
+        let square_mask = square.bitboard().0;
         let lateral_mask = ((square_mask << 1) & NOT_COL_A) | ((square_mask >> 1) & NOT_COL_H);
         let screen_mask = lateral_mask | square_mask;
         Self(lateral_mask | (screen_mask << 8) | (screen_mask >> 8))
@@ -101,7 +101,7 @@ const fn gen_sqs() -> [BitBoard; 64] {
     let mut counter = 0;
     while counter < 64 {
         // Safety: counter < 64
-        array[counter as usize] = unsafe { Square::from_u8(counter).as_bitboard() };
+        array[counter as usize] = unsafe { Square::from_u8(counter).bitboard() };
         counter += 1;
     }
     array
@@ -120,24 +120,24 @@ const fn gen_king_moves() -> [BitBoard; 64] {
 }
 
 static COLUMNS: [BitBoard; 8] = [
-    Column::A.as_bitboard(),
-    Column::B.as_bitboard(),
-    Column::C.as_bitboard(),
-    Column::D.as_bitboard(),
-    Column::E.as_bitboard(),
-    Column::F.as_bitboard(),
-    Column::G.as_bitboard(),
-    Column::H.as_bitboard(),
+    Column::A.bitboard(),
+    Column::B.bitboard(),
+    Column::C.bitboard(),
+    Column::D.bitboard(),
+    Column::E.bitboard(),
+    Column::F.bitboard(),
+    Column::G.bitboard(),
+    Column::H.bitboard(),
 ];
 static ROWS: [BitBoard; 8] = [
-    Row::One.as_bitboard(),
-    Row::Two.as_bitboard(),
-    Row::Three.as_bitboard(),
-    Row::Four.as_bitboard(),
-    Row::Five.as_bitboard(),
-    Row::Six.as_bitboard(),
-    Row::Seven.as_bitboard(),
-    Row::Eight.as_bitboard(),
+    Row::One.bitboard(),
+    Row::Two.bitboard(),
+    Row::Three.bitboard(),
+    Row::Four.bitboard(),
+    Row::Five.bitboard(),
+    Row::Six.bitboard(),
+    Row::Seven.bitboard(),
+    Row::Eight.bitboard(),
 ];
 static SQUARES: [BitBoard; 64] = gen_sqs();
 static KING_MOVES: [BitBoard; 64] = gen_king_moves();

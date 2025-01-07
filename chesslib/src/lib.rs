@@ -4,7 +4,7 @@ mod pieces;
 
 use board::Board;
 pub use board::{Column, Row, Square};
-pub use errors::InvalidFen;
+pub use errors::{InvalidFen, MoveError};
 pub use pieces::{Color, Piece};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -47,14 +47,28 @@ impl GameState {
         self.board.get_sq(square)
     }
 
-    pub fn make_illegal_move(&mut self, from: Square, to: Square) -> Option<Piece> {
+    pub fn make_move(&mut self, from: Square, to: Square) -> Result<Option<Piece>, MoveError> {
+        let Some(piece) = self.board.get_sq(from) else {
+            return Err(MoveError::EmptySquare);
+        };
+        if piece.color != self.turn {
+            return Err(MoveError::WrongTurn);
+        }
+        if !self.board.is_pseudolegal(piece, from, to) {
+            return Err(MoveError::IllegalMove);
+        }
+        Ok(self.make_illegal_move(from, to))
+    }
+
+    fn make_illegal_move(&mut self, from: Square, to: Square) -> Option<Piece> {
         let piece = self.board.move_piece(from, to);
         if self.turn == Color::Black {
             self.full_move += 1;
         }
         self.turn = !self.turn;
         #[cfg(debug_assertions)]
-        println!("{self:#?}");
+        //println!("{self:#?}");
+        println!("{:#?}", self.board.iter().collect::<Vec<_>>());
         piece
     }
 
@@ -73,6 +87,16 @@ mod errors {
     use crate::board::errors::InvalidFen as InvalidBoardFen;
     use std::num::ParseIntError;
     use thiserror::Error;
+
+    #[derive(Error, Debug)]
+    pub enum MoveError {
+        #[error("Empty square")]
+        EmptySquare,
+        #[error("Wrong turn")]
+        WrongTurn,
+        #[error("Illegal move")]
+        IllegalMove,
+    }
 
     #[derive(Error, Debug)]
     pub enum InvalidFen {
