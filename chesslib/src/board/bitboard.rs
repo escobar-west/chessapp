@@ -20,6 +20,10 @@ impl BitBoard {
         }
     }
 
+    pub fn count_squares(&self) -> u8 {
+        self.0.count_ones() as u8
+    }
+
     pub fn king_moves(square: Square) -> Self {
         KING_MOVES[square]
     }

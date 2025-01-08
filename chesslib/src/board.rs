@@ -55,10 +55,21 @@ impl Board {
         self.clear_sq(from).and_then(|p| self.set_sq(to, p))
     }
 
+    pub fn reverse_move_piece(&mut self, from: Square, to: Square, captured: Option<Piece>) {
+        self.move_piece(to, from);
+        if let Some(captured) = captured {
+            self.set_sq(to, captured);
+        }
+    }
+
     pub fn is_pseudolegal(&self, piece: Piece, from: Square, to: Square) -> bool {
         let mut move_mask = self.get_move_mask(piece, from);
         move_mask &= !self.occupied(piece.color);
         move_mask & to.into() != BitBoard::default()
+    }
+
+    pub fn count_pieces(&self, piece: Piece) -> u8 {
+        self.get_piece_board(piece).count_squares()
     }
 
     pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {

@@ -16,7 +16,7 @@ impl Iterator for BitBoardIter {
 }
 
 impl BitBoard {
-    fn iter(self) -> BitBoardIter {
+    pub fn iter(self) -> impl Iterator<Item = Square> {
         BitBoardIter { rem_board: self }
     }
 }
@@ -56,5 +56,9 @@ impl PieceSet {
 impl Board {
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
         self.white_pieces.iter().chain(self.black_pieces.iter())
+    }
+
+    pub fn iter_piece(&self, piece: Piece) -> impl Iterator<Item = Square> {
+        self.get_piece_board(piece).iter()
     }
 }

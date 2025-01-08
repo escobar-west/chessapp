@@ -4,6 +4,7 @@ mod pieces;
 
 use board::Board;
 pub use board::{Column, Row, Square};
+use constants::{BLACK_KING, WHITE_KING};
 pub use errors::{InvalidFen, MoveError};
 pub use pieces::{Color, Piece};
 
@@ -13,6 +14,8 @@ pub struct GameState {
     turn: Color,
     half_move: u16,
     full_move: u16,
+    white_king: Square,
+    black_king: Square,
 }
 
 impl Default for GameState {
@@ -35,11 +38,18 @@ impl GameState {
         let _ep_fen = fen_iter.next().ok_or(InvalidFen::EmptyFen)?;
         let half_move = fen_iter.next().ok_or(InvalidFen::EmptyFen)?.parse()?;
         let full_move = fen_iter.next().ok_or(InvalidFen::EmptyFen)?.parse()?;
+        if board.count_pieces(WHITE_KING) != 1 || board.count_pieces(BLACK_KING) != 1 {
+            return Err(InvalidFen::IllegalState);
+        }
+        let white_king = board.iter_piece(WHITE_KING).next().unwrap();
+        let black_king = board.iter_piece(BLACK_KING).next().unwrap();
         Ok(GameState {
             board,
             turn,
             half_move,
             full_move,
+            white_king,
+            black_king,
         })
     }
 
@@ -54,28 +64,28 @@ impl GameState {
         if piece.color != self.turn {
             return Err(MoveError::WrongTurn);
         }
-        if !self.is_legal(piece, from, to) {
+        if !self.board.is_pseudolegal(piece, from, to) {
             return Err(MoveError::IllegalMove);
         }
-        Ok(self.make_illegal_move(from, to))
-    }
-
-    pub fn is_legal(&self, piece: Piece, from: Square, to: Square) -> bool {
-        self.board.is_pseudolegal(piece, from, to)
-    }
-
-    fn make_illegal_move(&mut self, from: Square, to: Square) -> Option<Piece> {
-        let piece = self.board.move_piece(from, to);
+        let captured = self.board.move_piece(from, to);
+        if self.is_in_check(piece.color) {
+            self.board.reverse_move_piece(from, to, captured);
+            return Err(MoveError::KingInCheck);
+        }
+        match piece {
+            WHITE_KING => self.white_king = to,
+            BLACK_KING => self.black_king = to,
+            _ => {}
+        }
         if self.turn == Color::Black {
             self.full_move += 1;
         }
         self.turn = !self.turn;
-        #[cfg(debug_assertions)]
-        {
-            //println!("{self:#?}");
-            println!("{:#?}", self.board.iter().collect::<Vec<_>>());
-        }
-        piece
+        Ok(captured)
+    }
+
+    fn is_in_check(&self, _color: Color) -> bool {
+        false
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
@@ -103,12 +113,16 @@ mod errors {
         WrongTurn,
         #[error("Illegal move")]
         IllegalMove,
+        #[error("King in check")]
+        KingInCheck,
     }
 
     #[derive(Error, Debug)]
     pub enum InvalidFen {
         #[error("Empty FEN entry")]
         EmptyFen,
+        #[error("Illegal state")]
+        IllegalState,
         #[error("Invalid color: {0:#?}")]
         InvalidColor(String),
         #[error(transparent)]
