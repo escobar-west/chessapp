@@ -14,8 +14,6 @@ pub struct GameState {
     turn: Color,
     half_move: u16,
     full_move: u16,
-    white_king: Square,
-    black_king: Square,
 }
 
 impl Default for GameState {
@@ -41,15 +39,11 @@ impl GameState {
         if board.count_pieces(WHITE_KING) != 1 || board.count_pieces(BLACK_KING) != 1 {
             return Err(InvalidFen::IllegalState);
         }
-        let white_king = board.iter_piece(WHITE_KING).next().unwrap();
-        let black_king = board.iter_piece(BLACK_KING).next().unwrap();
         Ok(GameState {
             board,
             turn,
             half_move,
             full_move,
-            white_king,
-            black_king,
         })
     }
 
@@ -68,24 +62,15 @@ impl GameState {
             return Err(MoveError::IllegalMove);
         }
         let captured = self.board.move_piece(from, to);
-        if self.is_in_check(piece.color) {
+        if self.board.is_in_check(piece.color) {
             self.board.reverse_move_piece(from, to, captured);
             return Err(MoveError::KingInCheck);
-        }
-        match piece {
-            WHITE_KING => self.white_king = to,
-            BLACK_KING => self.black_king = to,
-            _ => {}
         }
         if self.turn == Color::Black {
             self.full_move += 1;
         }
         self.turn = !self.turn;
         Ok(captured)
-    }
-
-    fn is_in_check(&self, _color: Color) -> bool {
-        false
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {

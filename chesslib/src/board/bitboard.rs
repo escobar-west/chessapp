@@ -28,6 +28,10 @@ impl BitBoard {
         KING_MOVES[square]
     }
 
+    pub fn empty(&self) -> bool {
+        self.0 == 0
+    }
+
     const fn king_attack_mask(square: Square) -> Self {
         let square_mask = square.bitboard().0;
         let lateral_mask = ((square_mask << 1) & NOT_COL_A) | ((square_mask >> 1) & NOT_COL_H);

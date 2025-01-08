@@ -72,6 +72,25 @@ impl Board {
         self.get_piece_board(piece).count_squares()
     }
 
+    pub fn is_in_check(&self, turn: Color) -> bool {
+        let king = Piece {
+            color: turn,
+            figure: Figure::King,
+        };
+        let Some(king_sq) = self.iter_piece(king).next() else {
+            return false;
+        };
+        let enemy_king_mask = BitBoard::king_moves(king_sq);
+        let enemy_king_location = self.get_piece_board(Piece {
+            color: !turn,
+            figure: Figure::King,
+        });
+        if !(enemy_king_mask & enemy_king_location).empty() {
+            return true;
+        }
+        false
+    }
+
     pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {
         let piece_data = fen.split(' ').next().ok_or(InvalidFen::EmptyFen)?;
         let row_data = piece_data.split('/');

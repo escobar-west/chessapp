@@ -74,6 +74,14 @@ pub enum Figure {
     King,
 }
 
+impl Figure {
+    pub fn iter() -> impl Iterator<Item = &'static Self> {
+        use Figure::*;
+        static FIGURES: [Figure; 6] = [Pawn, Rook, Knight, Bishop, Queen, King];
+        FIGURES.iter()
+    }
+}
+
 pub mod errors {
     use thiserror::Error;
 
