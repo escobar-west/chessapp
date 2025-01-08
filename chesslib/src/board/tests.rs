@@ -1,6 +1,5 @@
 use super::{Board, Row, Square, bitboard::BitBoard};
-use crate::constants::DEFAULT_FEN;
-use crate::pieces::constants::*;
+use crate::{Color, constants::DEFAULT_FEN, pieces::constants::*};
 
 #[test]
 fn test_default_fen() {
@@ -53,13 +52,13 @@ fn test_default_fen() {
     );
 
     let white_mask = BitBoard::from(Row::One) | BitBoard::from(Row::Two);
-    //assert_eq!(board.white_occupied, white_mask);
+    assert_eq!(board.occupied(Color::White), white_mask);
 
     let black_mask = BitBoard::from(Row::Seven) | BitBoard::from(Row::Eight);
-    //assert_eq!(board.black_occupied, black_mask);
+    assert_eq!(board.occupied(Color::Black), black_mask);
 
-    let _occ_mask = white_mask | black_mask;
-    //assert_eq!(board.occupied, occ_mask);
+    let occ_mask = white_mask | black_mask;
+    assert_eq!(board.occupied, occ_mask);
 
     //let to_fen = board.to_fen();
     //assert_eq!(to_fen, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");

@@ -1,6 +1,6 @@
 mod view;
 
-use chesslib::{GameState, Piece, Square, constants::KINGS_ONLY};
+use chesslib::{GameState, Piece, Square, constants::*};
 use errors::AppError;
 use macroquad::input::{
     MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position,
@@ -9,7 +9,7 @@ use view::View;
 
 #[macroquad::main("Chess")]
 async fn main() -> Result<(), anyhow::Error> {
-    let mut app = App::new(KINGS_ONLY).await?;
+    let mut app = App::new(KINGS_PAWNS).await?;
     loop {
         app.update_state();
         app.draw_state().await;

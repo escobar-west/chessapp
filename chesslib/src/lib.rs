@@ -54,10 +54,14 @@ impl GameState {
         if piece.color != self.turn {
             return Err(MoveError::WrongTurn);
         }
-        if !self.board.is_pseudolegal(piece, from, to) {
+        if !self.is_legal(piece, from, to) {
             return Err(MoveError::IllegalMove);
         }
         Ok(self.make_illegal_move(from, to))
+    }
+
+    pub fn is_legal(&self, piece: Piece, from: Square, to: Square) -> bool {
+        self.board.is_pseudolegal(piece, from, to)
     }
 
     fn make_illegal_move(&mut self, from: Square, to: Square) -> Option<Piece> {
@@ -67,8 +71,10 @@ impl GameState {
         }
         self.turn = !self.turn;
         #[cfg(debug_assertions)]
-        //println!("{self:#?}");
-        println!("{:#?}", self.board.iter().collect::<Vec<_>>());
+        {
+            //println!("{self:#?}");
+            println!("{:#?}", self.board.iter().collect::<Vec<_>>());
+        }
         piece
     }
 
@@ -81,6 +87,7 @@ pub mod constants {
     pub use crate::pieces::constants::*;
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
+    pub const KINGS_PAWNS: &str = "4k3/ppppP3/8/8/8/8/PPPPp3/4K3 w - - 0 1";
 }
 
 mod errors {

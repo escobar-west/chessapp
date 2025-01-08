@@ -12,6 +12,7 @@ use std::ops::{Index, IndexMut};
 pub struct Board {
     white_pieces: PieceSet,
     black_pieces: PieceSet,
+    occupied: BitBoard,
     mailbox: MailBox,
 }
 
@@ -26,6 +27,7 @@ impl Board {
         Self {
             white_pieces: PieceSet::new(Color::White),
             black_pieces: PieceSet::new(Color::Black),
+            occupied: BitBoard::default(),
             mailbox: MailBox::default(),
         }
     }
@@ -54,7 +56,8 @@ impl Board {
     }
 
     pub fn is_pseudolegal(&self, piece: Piece, from: Square, to: Square) -> bool {
-        let move_mask = self.get_move_mask(piece, from);
+        let mut move_mask = self.get_move_mask(piece, from);
+        move_mask &= !self.occupied(piece.color);
         move_mask & to.into() != BitBoard::default()
     }
 
@@ -87,16 +90,21 @@ impl Board {
     fn get_move_mask(&self, piece: Piece, from: Square) -> BitBoard {
         match piece.figure {
             Figure::King => BitBoard::king_moves(from),
-            _ => todo!(),
+            _ => BitBoard::default(),
         }
     }
 
     fn clear_piece_board(&mut self, piece: Piece, mask: BitBoard) {
-        *self.get_piece_board_mut(piece) &= !mask;
+        let should_keep = !mask;
+        *self.get_piece_board_mut(piece) &= should_keep;
+        *self.occupied_mut(piece.color) &= should_keep;
+        self.occupied &= should_keep;
     }
 
     fn set_piece_board(&mut self, piece: Piece, mask: BitBoard) {
         *self.get_piece_board_mut(piece) |= mask;
+        *self.occupied_mut(piece.color) |= mask;
+        self.occupied |= mask;
     }
 
     fn get_piece_board(&self, piece: Piece) -> BitBoard {
@@ -130,6 +138,20 @@ impl Board {
             BLACK_BISHOP => &mut self.black_pieces.bishops,
             BLACK_QUEEN => &mut self.black_pieces.queens,
             BLACK_KING => &mut self.black_pieces.kings,
+        }
+    }
+
+    fn occupied(&self, color: Color) -> BitBoard {
+        match color {
+            Color::White => self.white_pieces.occupied,
+            Color::Black => self.black_pieces.occupied,
+        }
+    }
+
+    fn occupied_mut(&mut self, color: Color) -> &mut BitBoard {
+        match color {
+            Color::White => &mut self.white_pieces.occupied,
+            Color::Black => &mut self.black_pieces.occupied,
         }
     }
 }
@@ -309,6 +331,7 @@ struct PieceSet {
     bishops: BitBoard,
     queens: BitBoard,
     kings: BitBoard,
+    occupied: BitBoard,
 }
 
 impl PieceSet {
@@ -321,6 +344,7 @@ impl PieceSet {
             bishops: BitBoard::default(),
             queens: BitBoard::default(),
             kings: BitBoard::default(),
+            occupied: BitBoard::default(),
         }
     }
 }
