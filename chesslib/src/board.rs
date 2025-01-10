@@ -118,6 +118,7 @@ impl Board {
     fn get_move_mask(&self, piece: Piece, from: Square) -> BitBoard {
         let move_mask = match piece.figure {
             Figure::King => BitBoard::king_moves(from),
+            //Figure::Knight => BitBoard::knight_moves(from),
             _ => BitBoard::default(),
         };
         move_mask & !self.occupied(piece.color)
@@ -203,10 +204,6 @@ impl Column {
         // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
-
-    const fn bitboard(self) -> BitBoard {
-        BitBoard::new(0x0101010101010101 << self as u8)
-    }
 }
 
 impl TryFrom<u8> for Column {
@@ -258,10 +255,6 @@ impl Row {
     const unsafe fn from_u8_unchecked(val: u8) -> Self {
         // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
-    }
-
-    const fn bitboard(self) -> BitBoard {
-        BitBoard::new(0xff << (8 * self as u8))
     }
 }
 
@@ -330,10 +323,6 @@ impl Square {
     const unsafe fn from_u8_unchecked(val: u8) -> Self {
         // Safety: val must be < 64
         unsafe { std::mem::transmute::<u8, Self>(val) }
-    }
-
-    const fn bitboard(self) -> BitBoard {
-        BitBoard::new(1 << self as u8)
     }
 }
 
