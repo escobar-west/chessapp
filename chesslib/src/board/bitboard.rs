@@ -1,6 +1,5 @@
-use crate::Color;
-
 use super::{Column, Row, Square};
+use crate::pieces::Color;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 const NOT_COL_A: u64 = 0xfefefefefefefefe;
@@ -39,6 +38,17 @@ impl BitBoard {
         Self(value)
     }
 
+    pub fn king_moves(square: Square) -> Self {
+        KING_MOVES[square]
+    }
+
+    pub fn pawn_attacks(square: Square, color: Color) -> Self {
+        match color {
+            Color::White => WHITE_PAWN_ATTACKS[square],
+            Color::Black => BLACK_PAWN_ATTACKS[square],
+        }
+    }
+
     pub const fn bitscan_forward(&self) -> Option<Square> {
         match self.0.trailing_zeros() {
             64 => None,
@@ -49,17 +59,6 @@ impl BitBoard {
 
     pub fn count_squares(&self) -> u8 {
         self.0.count_ones() as u8
-    }
-
-    pub fn king_moves(square: Square) -> Self {
-        KING_MOVES[square]
-    }
-
-    pub fn pawn_attacks(square: Square, color: Color) -> Self {
-        match color {
-            Color::White => WHITE_PAWN_ATTACKS[square],
-            Color::Black => BLACK_PAWN_ATTACKS[square],
-        }
     }
 
     pub fn empty(&self) -> bool {

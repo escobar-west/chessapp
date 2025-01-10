@@ -1,5 +1,5 @@
-use super::{BitBoard, Board, Piece, PieceSet, Square};
-use crate::pieces::Figure;
+use super::{Board, PieceSet, Square, bitboard::BitBoard};
+use crate::pieces::{Figure, Piece};
 use std::iter::repeat;
 
 struct BitBoardIter {

@@ -1,13 +1,15 @@
 #![allow(dead_code)]
-mod board;
+pub mod board;
 pub mod errors;
-mod pieces;
+pub mod pieces;
 
 use board::Board;
-pub use board::{Column, Row, Square};
-use constants::{BLACK_KING, WHITE_KING};
+use board::Square;
 use errors::{MoveError, ParseFenError};
-pub use pieces::{Color, Piece};
+use pieces::{
+    Color, Piece,
+    constants::{BLACK_KING, WHITE_KING},
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GameState {
@@ -79,8 +81,16 @@ impl GameState {
     }
 }
 
-pub mod constants {
-    pub use crate::pieces::constants::*;
+pub mod prelude {
+    pub use crate::{
+        GameState,
+        board::{Column, Row, Square},
+        constants::*,
+        pieces::{Color, Figure, Piece, constants::*},
+    };
+}
+
+mod constants {
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
     pub const KINGS_PAWNS: &str = "4k3/ppppP3/8/8/8/8/PPPPp3/4K3 w - - 0 1";

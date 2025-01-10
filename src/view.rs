@@ -1,4 +1,4 @@
-use chesslib::{Piece, Square, constants::*};
+use chesslib::prelude::*;
 use macroquad::{
     color::WHITE,
     math::{Rect, Vec2},

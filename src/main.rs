@@ -1,6 +1,6 @@
 mod view;
 
-use chesslib::{GameState, Piece, Square, constants::*};
+use chesslib::prelude::*;
 use errors::AppError;
 use macroquad::input::{
     MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position,

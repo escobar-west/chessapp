@@ -1,5 +1,8 @@
 use super::{Board, Row, Square, bitboard::BitBoard};
-use crate::{Color, constants::DEFAULT_FEN, pieces::constants::*};
+use crate::{
+    constants::DEFAULT_FEN,
+    pieces::{Color, constants::*},
+};
 
 #[test]
 fn test_default_fen() {
