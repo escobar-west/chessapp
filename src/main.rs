@@ -85,12 +85,12 @@ struct LastPressed {
 }
 
 pub mod errors {
-    use chesslib::InvalidFen;
+    use chesslib::errors::ParseFenError;
     use thiserror::Error;
 
     #[derive(Error, Debug)]
     pub enum AppError {
         #[error(transparent)]
-        InvalidFen(#[from] InvalidFen),
+        ParseFenError(#[from] ParseFenError),
     }
 }

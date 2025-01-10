@@ -1,5 +1,5 @@
+use crate::errors::ParsePieceError;
 use constants::*;
-use errors::InvalidChar;
 use std::ops::Not;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -26,7 +26,7 @@ impl From<Piece> for char {
 }
 
 impl TryFrom<char> for Piece {
-    type Error = InvalidChar;
+    type Error = ParsePieceError;
     fn try_from(value: char) -> Result<Self, Self::Error> {
         match value {
             'P' => Ok(WHITE_PAWN),
@@ -41,7 +41,7 @@ impl TryFrom<char> for Piece {
             'b' => Ok(BLACK_BISHOP),
             'q' => Ok(BLACK_QUEEN),
             'k' => Ok(BLACK_KING),
-            v => Err(errors::InvalidChar(v)),
+            v => Err(ParsePieceError(v)),
         }
     }
 }
@@ -80,14 +80,6 @@ impl Figure {
         static FIGURES: [Figure; 6] = [Pawn, Rook, Knight, Bishop, Queen, King];
         FIGURES.iter()
     }
-}
-
-pub mod errors {
-    use thiserror::Error;
-
-    #[derive(Error, Debug)]
-    #[error("Invalid char {0}")]
-    pub struct InvalidChar(pub char);
 }
 
 pub mod constants {

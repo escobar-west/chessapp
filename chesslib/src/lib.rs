@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 mod board;
+pub mod errors;
 mod pieces;
 
 use board::Board;
 pub use board::{Column, Row, Square};
 use constants::{BLACK_KING, WHITE_KING};
-pub use errors::{InvalidFen, MoveError};
+use errors::{MoveError, ParseFenError};
 pub use pieces::{Color, Piece};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -23,21 +24,21 @@ impl Default for GameState {
 }
 
 impl GameState {
-    pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {
+    pub fn try_from_fen(fen: &str) -> Result<Self, ParseFenError> {
         let mut fen_iter = fen.split(' ');
-        let position_fen = fen_iter.next().ok_or(InvalidFen::EmptyFen)?;
+        let position_fen = fen_iter.next().ok_or(ParseFenError::EmptyFen)?;
         let board = Board::try_from_fen(position_fen)?;
-        let turn = match fen_iter.next().ok_or(InvalidFen::EmptyFen)? {
+        let turn = match fen_iter.next().ok_or(ParseFenError::EmptyFen)? {
             "w" => Color::White,
             "b" => Color::Black,
-            s => return Err(InvalidFen::InvalidColor(s.to_owned())),
+            s => return Err(ParseFenError::InvalidColor(s.to_owned())),
         };
-        let _castle_fen = fen_iter.next().ok_or(InvalidFen::EmptyFen)?;
-        let _ep_fen = fen_iter.next().ok_or(InvalidFen::EmptyFen)?;
-        let half_move = fen_iter.next().ok_or(InvalidFen::EmptyFen)?.parse()?;
-        let full_move = fen_iter.next().ok_or(InvalidFen::EmptyFen)?.parse()?;
+        let _castle_fen = fen_iter.next().ok_or(ParseFenError::EmptyFen)?;
+        let _ep_fen = fen_iter.next().ok_or(ParseFenError::EmptyFen)?;
+        let half_move = fen_iter.next().ok_or(ParseFenError::EmptyFen)?.parse()?;
+        let full_move = fen_iter.next().ok_or(ParseFenError::EmptyFen)?.parse()?;
         if board.count_pieces(WHITE_KING) != 1 || board.count_pieces(BLACK_KING) != 1 {
-            return Err(InvalidFen::IllegalState);
+            return Err(ParseFenError::IllegalState);
         }
         Ok(GameState {
             board,
@@ -83,36 +84,4 @@ pub mod constants {
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
     pub const KINGS_PAWNS: &str = "4k3/ppppP3/8/8/8/8/PPPPp3/4K3 w - - 0 1";
-}
-
-mod errors {
-    use crate::board::errors::InvalidFen as InvalidBoardFen;
-    use std::num::ParseIntError;
-    use thiserror::Error;
-
-    #[derive(Error, Debug)]
-    pub enum MoveError {
-        #[error("Empty square")]
-        EmptySquare,
-        #[error("Wrong turn")]
-        WrongTurn,
-        #[error("Illegal move")]
-        IllegalMove,
-        #[error("King in check")]
-        KingInCheck,
-    }
-
-    #[derive(Error, Debug)]
-    pub enum InvalidFen {
-        #[error("Empty FEN entry")]
-        EmptyFen,
-        #[error("Illegal state")]
-        IllegalState,
-        #[error("Invalid color: {0:#?}")]
-        InvalidColor(String),
-        #[error(transparent)]
-        InvalidBoardFen(#[from] InvalidBoardFen),
-        #[error(transparent)]
-        ParseIntError(#[from] ParseIntError),
-    }
 }

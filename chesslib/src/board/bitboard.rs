@@ -1,8 +1,35 @@
+use crate::Color;
+
 use super::{Column, Row, Square};
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not};
 
 const NOT_COL_A: u64 = 0xfefefefefefefefe;
 const NOT_COL_H: u64 = 0x7f7f7f7f7f7f7f7f;
+
+static COLUMNS: [BitBoard; 8] = [
+    Column::A.bitboard(),
+    Column::B.bitboard(),
+    Column::C.bitboard(),
+    Column::D.bitboard(),
+    Column::E.bitboard(),
+    Column::F.bitboard(),
+    Column::G.bitboard(),
+    Column::H.bitboard(),
+];
+static ROWS: [BitBoard; 8] = [
+    Row::One.bitboard(),
+    Row::Two.bitboard(),
+    Row::Three.bitboard(),
+    Row::Four.bitboard(),
+    Row::Five.bitboard(),
+    Row::Six.bitboard(),
+    Row::Seven.bitboard(),
+    Row::Eight.bitboard(),
+];
+static SQUARES: [BitBoard; 64] = gen_sqs();
+static KING_MOVES: [BitBoard; 64] = gen_king_moves();
+static WHITE_PAWN_ATTACKS: [BitBoard; 64] = gen_pawn_attacks(Color::White);
+static BLACK_PAWN_ATTACKS: [BitBoard; 64] = gen_pawn_attacks(Color::Black);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct BitBoard(u64);
@@ -16,7 +43,7 @@ impl BitBoard {
         match self.0.trailing_zeros() {
             64 => None,
             // Safety: x < 64
-            x => unsafe { Some(Square::from_u8(x as u8)) },
+            x => unsafe { Some(Square::from_u8_unchecked(x as u8)) },
         }
     }
 
@@ -28,15 +55,31 @@ impl BitBoard {
         KING_MOVES[square]
     }
 
+    pub fn pawn_attacks(square: Square, color: Color) -> Self {
+        match color {
+            Color::White => WHITE_PAWN_ATTACKS[square],
+            Color::Black => BLACK_PAWN_ATTACKS[square],
+        }
+    }
+
     pub fn empty(&self) -> bool {
         self.0 == 0
     }
 
-    const fn king_attack_mask(square: Square) -> Self {
+    const fn king_move_mask(square: Square) -> Self {
         let square_mask = square.bitboard().0;
         let lateral_mask = ((square_mask << 1) & NOT_COL_A) | ((square_mask >> 1) & NOT_COL_H);
         let screen_mask = lateral_mask | square_mask;
         Self(lateral_mask | (screen_mask << 8) | (screen_mask >> 8))
+    }
+
+    const fn pawn_attack_mask(square: Square, color: Color) -> Self {
+        let square_mask = square.bitboard().0;
+        let (left, right) = match color {
+            Color::White => (square_mask << 7, square_mask << 9),
+            Color::Black => (square_mask >> 9, square_mask >> 7),
+        };
+        Self((left & NOT_COL_H) | (right & NOT_COL_A))
     }
 }
 
@@ -109,7 +152,7 @@ const fn gen_sqs() -> [BitBoard; 64] {
     let mut counter = 0;
     while counter < 64 {
         // Safety: counter < 64
-        array[counter as usize] = unsafe { Square::from_u8(counter).bitboard() };
+        array[counter as usize] = unsafe { Square::from_u8_unchecked(counter).bitboard() };
         counter += 1;
     }
     array
@@ -120,35 +163,24 @@ const fn gen_king_moves() -> [BitBoard; 64] {
     let mut counter = 0;
     while counter < 64 {
         // Safety: counter < 64
-        let square = unsafe { Square::from_u8(counter) };
-        array[counter as usize] = BitBoard::king_attack_mask(square);
+        let square = unsafe { Square::from_u8_unchecked(counter) };
+        array[counter as usize] = BitBoard::king_move_mask(square);
         counter += 1;
     }
     array
 }
 
-static COLUMNS: [BitBoard; 8] = [
-    Column::A.bitboard(),
-    Column::B.bitboard(),
-    Column::C.bitboard(),
-    Column::D.bitboard(),
-    Column::E.bitboard(),
-    Column::F.bitboard(),
-    Column::G.bitboard(),
-    Column::H.bitboard(),
-];
-static ROWS: [BitBoard; 8] = [
-    Row::One.bitboard(),
-    Row::Two.bitboard(),
-    Row::Three.bitboard(),
-    Row::Four.bitboard(),
-    Row::Five.bitboard(),
-    Row::Six.bitboard(),
-    Row::Seven.bitboard(),
-    Row::Eight.bitboard(),
-];
-static SQUARES: [BitBoard; 64] = gen_sqs();
-static KING_MOVES: [BitBoard; 64] = gen_king_moves();
+const fn gen_pawn_attacks(color: Color) -> [BitBoard; 64] {
+    let mut array = [BitBoard::new(0); 64];
+    let mut counter = 0;
+    while counter < 64 {
+        // Safety: counter < 64
+        let square = unsafe { Square::from_u8_unchecked(counter) };
+        array[counter as usize] = BitBoard::pawn_attack_mask(square, color);
+        counter += 1;
+    }
+    array
+}
 
 #[cfg(test)]
 mod tests {

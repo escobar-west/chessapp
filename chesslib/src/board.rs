@@ -2,9 +2,11 @@ mod bitboard;
 mod iterators;
 mod mailbox;
 
-use crate::pieces::{Color, Figure, Piece, constants::*};
+use crate::{
+    errors::{InvalidValueError, ParseFenError},
+    pieces::{Color, Figure, Piece, constants::*},
+};
 use bitboard::BitBoard;
-use errors::{InvalidFen, InvalidValue};
 use mailbox::MailBox;
 use std::ops::{Index, IndexMut};
 
@@ -63,8 +65,7 @@ impl Board {
     }
 
     pub fn is_pseudolegal(&self, piece: Piece, from: Square, to: Square) -> bool {
-        let mut move_mask = self.get_move_mask(piece, from);
-        move_mask &= !self.occupied(piece.color);
+        let move_mask = self.get_move_mask(piece, from);
         move_mask & to.into() != BitBoard::default()
     }
 
@@ -91,11 +92,11 @@ impl Board {
         false
     }
 
-    pub fn try_from_fen(fen: &str) -> Result<Self, InvalidFen> {
-        let piece_data = fen.split(' ').next().ok_or(InvalidFen::EmptyFen)?;
+    pub fn try_from_fen(fen: &str) -> Result<Self, ParseFenError> {
+        let piece_data = fen.split(' ').next().ok_or(ParseFenError::EmptyFen)?;
         let row_data = piece_data.split('/');
         if row_data.clone().count() != 8 {
-            return Err(InvalidFen::WrongRowCount);
+            return Err(ParseFenError::WrongRowCount);
         }
         let mut board = Self::new();
         for (row_idx, row) in (0..8).rev().zip(row_data) {
@@ -105,10 +106,7 @@ impl Board {
                     col_idx += c.to_digit(10).unwrap() as u8;
                 } else {
                     let piece = Piece::try_from(c)?;
-                    let square = Square::from_coords(
-                        col_idx.try_into().unwrap(),
-                        row_idx.try_into().unwrap(),
-                    );
+                    let square = Square::from_coords(col_idx.try_into()?, row_idx.try_into()?);
                     board.set_sq(square, piece);
                     col_idx += 1;
                 }
@@ -118,10 +116,11 @@ impl Board {
     }
 
     fn get_move_mask(&self, piece: Piece, from: Square) -> BitBoard {
-        match piece.figure {
+        let move_mask = match piece.figure {
             Figure::King => BitBoard::king_moves(from),
             _ => BitBoard::default(),
-        }
+        };
+        move_mask & !self.occupied(piece.color)
     }
 
     fn clear_piece_board(&mut self, piece: Piece, mask: BitBoard) {
@@ -200,7 +199,7 @@ pub enum Column {
 }
 
 impl Column {
-    const unsafe fn from_u8(val: u8) -> Self {
+    const unsafe fn from_u8_unchecked(val: u8) -> Self {
         // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
@@ -211,7 +210,7 @@ impl Column {
 }
 
 impl TryFrom<u8> for Column {
-    type Error = InvalidValue;
+    type Error = InvalidValueError;
 
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
@@ -223,7 +222,7 @@ impl TryFrom<u8> for Column {
             5 => Ok(Column::F),
             6 => Ok(Column::G),
             7 => Ok(Column::H),
-            v => Err(InvalidValue(v)),
+            v => Err(InvalidValueError(v)),
         }
     }
 }
@@ -256,7 +255,7 @@ pub enum Row {
 }
 
 impl Row {
-    const unsafe fn from_u8(val: u8) -> Self {
+    const unsafe fn from_u8_unchecked(val: u8) -> Self {
         // Safety: val must be < 8
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
@@ -267,7 +266,7 @@ impl Row {
 }
 
 impl TryFrom<u8> for Row {
-    type Error = InvalidValue;
+    type Error = InvalidValueError;
 
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
@@ -279,7 +278,7 @@ impl TryFrom<u8> for Row {
             5 => Ok(Row::Six),
             6 => Ok(Row::Seven),
             7 => Ok(Row::Eight),
-            v => Err(InvalidValue(v)),
+            v => Err(InvalidValueError(v)),
         }
     }
 }
@@ -315,20 +314,20 @@ pub enum Square {
 impl Square {
     pub const fn from_coords(col: Column, row: Row) -> Self {
         // Safety: 8 * row + col < 64
-        unsafe { Self::from_u8(8 * row as u8 + col as u8) }
+        unsafe { Self::from_u8_unchecked(8 * row as u8 + col as u8) }
     }
 
     pub const fn col(self) -> Column {
         // Safety: self & 7 < 8
-        unsafe { Column::from_u8(self as u8 & 7) }
+        unsafe { Column::from_u8_unchecked(self as u8 & 7) }
     }
 
     pub const fn row(self) -> Row {
         // Safety: self >> 3 < 8
-        unsafe { Row::from_u8(self as u8 >> 3) }
+        unsafe { Row::from_u8_unchecked(self as u8 >> 3) }
     }
 
-    const unsafe fn from_u8(val: u8) -> Self {
+    const unsafe fn from_u8_unchecked(val: u8) -> Self {
         // Safety: val must be < 64
         unsafe { std::mem::transmute::<u8, Self>(val) }
     }
@@ -377,25 +376,6 @@ impl PieceSet {
             occupied: BitBoard::default(),
         }
     }
-}
-
-pub mod errors {
-    use crate::pieces::errors::InvalidChar;
-    use thiserror::Error;
-
-    #[derive(Error, Debug)]
-    pub enum InvalidFen {
-        #[error("Empty FEN")]
-        EmptyFen,
-        #[error("Wrong number of rows")]
-        WrongRowCount,
-        #[error(transparent)]
-        InvalidChar(#[from] InvalidChar),
-    }
-
-    #[derive(Error, Debug)]
-    #[error("Invalid input: {0}")]
-    pub struct InvalidValue(pub u8);
 }
 
 #[cfg(test)]
