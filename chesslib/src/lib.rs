@@ -90,7 +90,7 @@ pub mod prelude {
     };
 }
 
-mod constants {
+pub mod constants {
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
     pub const KINGS_PAWNS: &str = "4k3/ppppP3/8/8/8/8/PPPPp3/4K3 w - - 0 1";
