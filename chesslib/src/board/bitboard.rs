@@ -17,7 +17,9 @@ macro_rules! gen_table {
 }
 
 const NOT_COL_A: u64 = 0xfefefefefefefefe;
+const NOT_COL_AB: u64 = NOT_COL_A & (NOT_COL_A << 1);
 const NOT_COL_H: u64 = 0x7f7f7f7f7f7f7f7f;
+const NOT_COL_GH: u64 = NOT_COL_H & (NOT_COL_H >> 1);
 
 static COLUMNS: [BitBoard; 8] = [
     BitBoard::col_mask(Column::A),
@@ -41,7 +43,7 @@ static ROWS: [BitBoard; 8] = [
 ];
 static SQUARES: [BitBoard; 64] = gen_table!(BitBoard::square_mask);
 static KING_MOVES: [BitBoard; 64] = gen_table!(BitBoard::king_move_mask);
-static KNIGHT_MOVES: [BitBoard; 64] = gen_table!(BitBoard::king_move_mask);
+static KNIGHT_MOVES: [BitBoard; 64] = gen_table!(BitBoard::knight_move_mask);
 static WHITE_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mask, Color::White);
 static BLACK_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mask, Color::Black);
 
@@ -85,15 +87,15 @@ impl BitBoard {
     }
 
     const fn col_mask(c: Column) -> Self {
-        Self::new(0x0101010101010101 << c as u8)
+        Self(0x0101010101010101 << c as u8)
     }
 
     const fn row_mask(r: Row) -> Self {
-        Self::new(0xff << (8 * r as u8))
+        Self(0xff << (8 * r as u8))
     }
 
     const fn square_mask(s: Square) -> Self {
-        Self::new(1 << s as u8)
+        Self(1 << s as u8)
     }
 
     const fn king_move_mask(square: Square) -> Self {
@@ -101,6 +103,20 @@ impl BitBoard {
         let lateral_mask = ((square_mask << 1) & NOT_COL_A) | ((square_mask >> 1) & NOT_COL_H);
         let screen_mask = lateral_mask | square_mask;
         Self(lateral_mask | (screen_mask << 8) | (screen_mask >> 8))
+    }
+
+    const fn knight_move_mask(square: Square) -> Self {
+        let square_mask = Self::square_mask(square).0;
+        Self(
+            ((square_mask << 17) & NOT_COL_A)
+                | ((square_mask << 10) & NOT_COL_AB)
+                | ((square_mask >> 6) & NOT_COL_AB)
+                | ((square_mask >> 15) & NOT_COL_A)
+                | ((square_mask << 15) & NOT_COL_H)
+                | ((square_mask << 6) & NOT_COL_GH)
+                | ((square_mask >> 10) & NOT_COL_GH)
+                | ((square_mask >> 17) & NOT_COL_H),
+        )
     }
 
     const fn pawn_attack_mask(square: Square, color: Color) -> Self {

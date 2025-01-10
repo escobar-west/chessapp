@@ -89,6 +89,14 @@ impl Board {
         if !(enemy_king_mask & enemy_king_location).empty() {
             return true;
         }
+        let enemy_knight_mask = BitBoard::knight_moves(king_sq);
+        let enemy_knight_location = self.get_piece_board(Piece {
+            color: !turn,
+            figure: Figure::Knight,
+        });
+        if !(enemy_knight_mask & enemy_knight_location).empty() {
+            return true;
+        }
         false
     }
 
@@ -118,7 +126,7 @@ impl Board {
     fn get_move_mask(&self, piece: Piece, from: Square) -> BitBoard {
         let move_mask = match piece.figure {
             Figure::King => BitBoard::king_moves(from),
-            //Figure::Knight => BitBoard::knight_moves(from),
+            Figure::Knight => BitBoard::knight_moves(from),
             _ => BitBoard::default(),
         };
         move_mask & !self.occupied(piece.color)
