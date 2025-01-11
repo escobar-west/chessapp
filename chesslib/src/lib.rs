@@ -93,6 +93,6 @@ pub mod prelude {
 pub mod constants {
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
-    pub const KINGS_PAWNS: &str = "4k3/ppppP3/8/8/8/8/PPPPp3/4K3 w - - 0 1";
-    pub const KINGS_KNIGHTS: &str = "8/8/4k3/3N1n2/4K3/8/8/8 w - - 0 1";
+    pub const KN: &str = "8/8/4k3/3N1n2/4K3/8/8/8 w - - 0 1";
+    pub const KNP: &str = "1n2k3/2P2p2/6N1/8/8/6n1/2p2P2/1NN1K3 w - - 0 1";
 }

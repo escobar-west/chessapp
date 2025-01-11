@@ -10,7 +10,7 @@ use view::View;
 
 #[macroquad::main("Chess")]
 async fn main() -> Result<(), anyhow::Error> {
-    let mut app = App::new(KINGS_KNIGHTS).await?;
+    let mut app = App::new(KNP).await?;
     loop {
         app.update_state();
         app.draw_state().await;
