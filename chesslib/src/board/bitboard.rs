@@ -16,32 +16,45 @@ macro_rules! gen_table {
     }};
 }
 
-const NOT_COL_A: u64 = 0xfefefefefefefefe;
-const NOT_COL_AB: u64 = NOT_COL_A & (NOT_COL_A << 1);
-const NOT_COL_H: u64 = 0x7f7f7f7f7f7f7f7f;
-const NOT_COL_GH: u64 = NOT_COL_H & (NOT_COL_H >> 1);
+const fn shift_bb(bitboard: u64, cols: i8, rows: i8) -> u64 {
+    if rows.abs() >= 8 {
+        return 0;
+    }
+    let col_mask = if cols.is_positive() {
+        0xffu8 >> cols
+    } else {
+        0xffu8 << -cols
+    };
+    let masked_bitboard = bitboard & (col_mask as u64 * 0x0101010101010101);
+    let shift = 8 * rows + cols;
+    if shift.is_positive() {
+        masked_bitboard << shift
+    } else {
+        masked_bitboard >> -shift
+    }
+}
 
 static COLUMNS: [BitBoard; 8] = [
-    BitBoard::col_mask(Column::A),
-    BitBoard::col_mask(Column::B),
-    BitBoard::col_mask(Column::C),
-    BitBoard::col_mask(Column::D),
-    BitBoard::col_mask(Column::E),
-    BitBoard::col_mask(Column::F),
-    BitBoard::col_mask(Column::G),
-    BitBoard::col_mask(Column::H),
+    BitBoard::from_col(Column::A),
+    BitBoard::from_col(Column::B),
+    BitBoard::from_col(Column::C),
+    BitBoard::from_col(Column::D),
+    BitBoard::from_col(Column::E),
+    BitBoard::from_col(Column::F),
+    BitBoard::from_col(Column::G),
+    BitBoard::from_col(Column::H),
 ];
 static ROWS: [BitBoard; 8] = [
-    BitBoard::row_mask(Row::One),
-    BitBoard::row_mask(Row::Two),
-    BitBoard::row_mask(Row::Three),
-    BitBoard::row_mask(Row::Four),
-    BitBoard::row_mask(Row::Five),
-    BitBoard::row_mask(Row::Six),
-    BitBoard::row_mask(Row::Seven),
-    BitBoard::row_mask(Row::Eight),
+    BitBoard::from_row(Row::One),
+    BitBoard::from_row(Row::Two),
+    BitBoard::from_row(Row::Three),
+    BitBoard::from_row(Row::Four),
+    BitBoard::from_row(Row::Five),
+    BitBoard::from_row(Row::Six),
+    BitBoard::from_row(Row::Seven),
+    BitBoard::from_row(Row::Eight),
 ];
-static SQUARES: [BitBoard; 64] = gen_table!(BitBoard::square_mask);
+static SQUARES: [BitBoard; 64] = gen_table!(BitBoard::from_square);
 static KING_MOVES: [BitBoard; 64] = gen_table!(BitBoard::king_move_mask);
 static KNIGHT_MOVES: [BitBoard; 64] = gen_table!(BitBoard::knight_move_mask);
 static WHITE_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mask, Color::White);
@@ -70,14 +83,6 @@ impl BitBoard {
         }
     }
 
-    pub const fn bitscan_forward(&self) -> Option<Square> {
-        match self.0.trailing_zeros() {
-            64 => None,
-            // Safety: x < 64
-            x => unsafe { Some(Square::from_u8_unchecked(x as u8)) },
-        }
-    }
-
     pub fn count_squares(&self) -> u8 {
         self.0.count_ones() as u8
     }
@@ -86,46 +91,75 @@ impl BitBoard {
         self.0 == 0
     }
 
-    const fn col_mask(c: Column) -> Self {
+    pub fn iter(self) -> impl Iterator<Item = Square> {
+        BitBoardIter { rem_board: self }
+    }
+
+    pub fn print_board(self, c: char) {
+        let mut char_board: [char; 64] = ['☐'; 64];
+        for square in self.iter() {
+            char_board[square] = c;
+        }
+        let mut out_str = String::new();
+        for i in (0..8).rev() {
+            let offset = 8 * i as usize;
+            let row: String = char_board[offset..offset + 8].iter().collect();
+            out_str.push_str(&row);
+            out_str.push('\n')
+        }
+        println!("{}", out_str);
+    }
+
+    const fn from_col(c: Column) -> Self {
         Self(0x0101010101010101 << c as u8)
     }
 
-    const fn row_mask(r: Row) -> Self {
+    const fn from_row(r: Row) -> Self {
         Self(0xff << (8 * r as u8))
     }
 
-    const fn square_mask(s: Square) -> Self {
+    const fn from_square(s: Square) -> Self {
         Self(1 << s as u8)
     }
 
     const fn king_move_mask(square: Square) -> Self {
-        let square_mask = Self::square_mask(square).0;
-        let lateral_mask = ((square_mask << 1) & NOT_COL_A) | ((square_mask >> 1) & NOT_COL_H);
+        let square_mask = Self::from_square(square).0;
+        let lateral_mask = shift_bb(square_mask, -1, 0) | shift_bb(square_mask, 1, 0);
         let screen_mask = lateral_mask | square_mask;
-        Self(lateral_mask | (screen_mask << 8) | (screen_mask >> 8))
+        Self(lateral_mask | shift_bb(screen_mask, 0, 1) | shift_bb(screen_mask, 0, -1))
     }
 
     const fn knight_move_mask(square: Square) -> Self {
-        let square_mask = Self::square_mask(square).0;
+        let square_mask = Self::from_square(square).0;
         Self(
-            ((square_mask << 17) & NOT_COL_A)
-                | ((square_mask << 10) & NOT_COL_AB)
-                | ((square_mask >> 6) & NOT_COL_AB)
-                | ((square_mask >> 15) & NOT_COL_A)
-                | ((square_mask << 15) & NOT_COL_H)
-                | ((square_mask << 6) & NOT_COL_GH)
-                | ((square_mask >> 10) & NOT_COL_GH)
-                | ((square_mask >> 17) & NOT_COL_H),
+            shift_bb(square_mask, 2, 1)
+                | shift_bb(square_mask, 2, -1)
+                | shift_bb(square_mask, -2, 1)
+                | shift_bb(square_mask, -2, -1)
+                | shift_bb(square_mask, 1, 2)
+                | shift_bb(square_mask, 1, -2)
+                | shift_bb(square_mask, -1, 2)
+                | shift_bb(square_mask, -1, -2),
         )
     }
 
     const fn pawn_attack_mask(square: Square, color: Color) -> Self {
-        let square_mask = Self::square_mask(square).0;
-        let (left, right) = match color {
-            Color::White => (square_mask << 7, square_mask << 9),
-            Color::Black => (square_mask >> 9, square_mask >> 7),
+        let square_mask = Self::from_square(square).0;
+        let row_shift = match color {
+            Color::White => 1,
+            Color::Black => -1,
         };
-        Self((left & NOT_COL_H) | (right & NOT_COL_A))
+        let left = shift_bb(square_mask, -1, row_shift);
+        let right = shift_bb(square_mask, 1, row_shift);
+        Self(left | right)
+    }
+
+    const fn bitscan_forward(&self) -> Option<Square> {
+        match self.0.trailing_zeros() {
+            64 => None,
+            // Safety: x < 64
+            x => unsafe { Some(Square::from_u8_unchecked(x as u8)) },
+        }
     }
 }
 
@@ -193,6 +227,19 @@ impl Not for BitBoard {
     }
 }
 
+struct BitBoardIter {
+    rem_board: BitBoard,
+}
+
+impl Iterator for BitBoardIter {
+    type Item = Square;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.rem_board.bitscan_forward().inspect(|&lsb| {
+            self.rem_board ^= BitBoard::from(lsb);
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -213,6 +260,39 @@ mod tests {
             | Square::H7.into()
             | Square::H8.into();
         assert_eq!(king_moves, expected);
+    }
+
+    #[test]
+    fn test_knight_moves() {
+        let knight_moves = BitBoard::knight_moves(Square::A1);
+        let expected = BitBoard::from(Square::B3) | Square::C2.into();
+        assert_eq!(knight_moves, expected);
+
+        let knight_moves = BitBoard::knight_moves(Square::F6);
+        let expected = BitBoard::from(Square::D5)
+            | Square::D7.into()
+            | Square::E4.into()
+            | Square::E8.into()
+            | Square::G4.into()
+            | Square::G8.into()
+            | Square::H5.into()
+            | Square::H7.into();
+        assert_eq!(knight_moves, expected);
+    }
+
+    #[test]
+    fn test_pawn_attacks() {
+        let pawn_attacks = BitBoard::pawn_attacks(Square::A1, Color::White);
+        let expected = BitBoard::from(Square::B2);
+        assert_eq!(pawn_attacks, expected);
+
+        let pawn_attacks = BitBoard::pawn_attacks(Square::H2, Color::White);
+        let expected = BitBoard::from(Square::G3);
+        assert_eq!(pawn_attacks, expected);
+
+        let pawn_attacks = BitBoard::pawn_attacks(Square::B8, Color::Black);
+        let expected = BitBoard::from(Square::A7) | Square::C7.into();
+        assert_eq!(pawn_attacks, expected);
     }
 
     #[test]

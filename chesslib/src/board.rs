@@ -1,6 +1,6 @@
 mod bitboard;
-mod iterators;
 mod mailbox;
+use std::iter::repeat;
 
 use crate::{
     errors::{InvalidValueError, ParseFenError},
@@ -98,6 +98,14 @@ impl Board {
             return true;
         }
         false
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
+        self.white_pieces.iter().chain(self.black_pieces.iter())
+    }
+
+    pub fn iter_piece(&self, piece: Piece) -> impl Iterator<Item = Square> {
+        self.get_piece_board(piece).iter()
     }
 
     pub fn try_from_fen(fen: &str) -> Result<Self, ParseFenError> {
@@ -372,6 +380,36 @@ impl PieceSet {
             kings: BitBoard::default(),
             occupied: BitBoard::default(),
         }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
+        let color = self.color;
+        self.pawns
+            .iter()
+            .zip(repeat(Piece {
+                color,
+                figure: Figure::Pawn,
+            }))
+            .chain(self.rooks.iter().zip(repeat(Piece {
+                color,
+                figure: Figure::Rook,
+            })))
+            .chain(self.knights.iter().zip(repeat(Piece {
+                color,
+                figure: Figure::Knight,
+            })))
+            .chain(self.bishops.iter().zip(repeat(Piece {
+                color,
+                figure: Figure::Bishop,
+            })))
+            .chain(self.queens.iter().zip(repeat(Piece {
+                color,
+                figure: Figure::Queen,
+            })))
+            .chain(self.kings.iter().zip(repeat(Piece {
+                color,
+                figure: Figure::King,
+            })))
     }
 }
 
