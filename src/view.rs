@@ -1,5 +1,6 @@
-use chesslib::prelude::*;
+use chesslib::{errors::MoveError, prelude::*};
 use macroquad::{
+    audio::{Sound, load_sound, play_sound_once},
     color::WHITE,
     math::{Rect, Vec2},
     texture::{DrawTextureParams, Texture2D, draw_texture_ex, load_texture},
@@ -15,12 +16,13 @@ pub struct View {
     square_size: f32,
     board_texture: Texture2D,
     piece_texture: Texture2D,
+    move_sound: Sound,
+    capture_sound: Sound,
+    in_check_sound: Sound,
 }
 
 impl View {
     pub async fn new() -> Self {
-        let board_texture: Texture2D = load_texture("assets/boards/default.png").await.unwrap();
-        let piece_texture: Texture2D = load_texture("assets/pieces/wiki_chess.png").await.unwrap();
         let width = screen_width();
         let height = screen_height();
         let board_size = width.min(height);
@@ -30,8 +32,11 @@ impl View {
             height,
             board_size,
             square_size,
-            board_texture,
-            piece_texture,
+            board_texture: load_texture("assets/boards/default.png").await.unwrap(),
+            piece_texture: load_texture("assets/pieces/wiki_chess.png").await.unwrap(),
+            move_sound: load_sound("assets/sounds/Move.ogg").await.unwrap(),
+            capture_sound: load_sound("assets/sounds/Capture.ogg").await.unwrap(),
+            in_check_sound: load_sound("assets/sounds/Error.ogg").await.unwrap(),
         }
     }
 
@@ -76,6 +81,16 @@ impl View {
         let top_left_x = square.col() as u8 as f32 * self.square_size;
         let top_left_y = (7 - square.row() as u8) as f32 * self.square_size;
         self.draw_piece_at(piece, top_left_x, top_left_y);
+    }
+
+    pub fn play_sound_from_move_result(&self, move_result: Result<Option<Piece>, MoveError>) {
+        let sound = match move_result {
+            Ok(None) => &self.move_sound,
+            Ok(Some(_)) => &self.capture_sound,
+            Err(MoveError::KingInCheck) => &self.in_check_sound,
+            _ => return,
+        };
+        play_sound_once(sound);
     }
 
     fn draw_piece_at(&self, piece: Piece, x: f32, y: f32) {

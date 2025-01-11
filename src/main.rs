@@ -2,8 +2,9 @@ mod view;
 
 use chesslib::prelude::*;
 use errors::AppError;
-use macroquad::input::{
-    MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position,
+use macroquad::{
+    input::{MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position},
+    logging::{debug, error, info, warn},
 };
 use view::View;
 
@@ -48,9 +49,9 @@ impl App {
         if is_mouse_button_released(MouseButton::Left) {
             if let Some(last_pressed) = self.last_pressed {
                 if let Some(to) = self.view.get_square_at_point(self.mouse) {
-                    if let Err(res) = self.gs.make_move(last_pressed.square, to) {
-                        println!("{res:?}");
-                    }
+                    let res = self.gs.make_move(last_pressed.square, to);
+                    debug!("{:#?}", res);
+                    self.view.play_sound_from_move_result(res);
                 };
             }
             self.last_pressed = None;
