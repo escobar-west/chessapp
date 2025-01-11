@@ -16,6 +16,7 @@ pub struct View {
     square_size: f32,
     board_texture: Texture2D,
     piece_texture: Texture2D,
+    highlight_texture: Texture2D,
     move_sound: Sound,
     capture_sound: Sound,
     in_check_sound: Sound,
@@ -34,6 +35,7 @@ impl View {
             square_size,
             board_texture: load_texture("assets/boards/default.png").await.unwrap(),
             piece_texture: load_texture("assets/pieces/wiki_chess.png").await.unwrap(),
+            highlight_texture: load_texture("assets/boards/highlight.png").await.unwrap(),
             move_sound: load_sound("assets/sounds/Move.ogg").await.unwrap(),
             capture_sound: load_sound("assets/sounds/Capture.ogg").await.unwrap(),
             in_check_sound: load_sound("assets/sounds/Error.ogg").await.unwrap(),
@@ -54,6 +56,15 @@ impl View {
     pub fn draw_board(&self) {
         draw_texture_ex(&self.board_texture, 0.0, 0.0, WHITE, DrawTextureParams {
             dest_size: Some(Vec2::splat(self.board_size)),
+            ..Default::default()
+        });
+    }
+
+    pub fn draw_highlight(&self, square: Square) {
+        let x = square.col() as u8 as f32 * self.square_size;
+        let y = (7 - square.row() as u8) as f32 * self.square_size;
+        draw_texture_ex(&self.highlight_texture, x, y, WHITE, DrawTextureParams {
+            dest_size: Some(Vec2::splat(self.square_size)),
             ..Default::default()
         });
     }

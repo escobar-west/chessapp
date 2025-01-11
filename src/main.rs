@@ -4,7 +4,7 @@ use chesslib::prelude::*;
 use errors::AppError;
 use macroquad::{
     input::{MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position},
-    logging::{debug, error, info, warn},
+    logging::debug,
 };
 use view::View;
 
@@ -22,6 +22,7 @@ struct App {
     view: View,
     mouse: (f32, f32),
     last_pressed: Option<LastPressed>,
+    last_move: Option<(Square, Square)>,
 }
 
 impl App {
@@ -33,6 +34,7 @@ impl App {
             view,
             mouse: mouse_position(),
             last_pressed: None,
+            last_move: None,
         })
     }
 
@@ -50,8 +52,12 @@ impl App {
             if let Some(last_pressed) = self.last_pressed {
                 if let Some(to) = self.view.get_square_at_point(self.mouse) {
                     let res = self.gs.make_move(last_pressed.square, to);
+                    #[cfg(debug_assertions)]
                     debug!("{:#?}", res);
                     self.view.play_sound_from_move_result(res);
+                    if let Ok(_) = res {
+                        self.last_move = Some((last_pressed.square, to));
+                    }
                 };
             }
             self.last_pressed = None;
@@ -60,6 +66,10 @@ impl App {
 
     async fn draw_state(&self) {
         self.view.draw_board();
+        if let Some(last_move) = self.last_move {
+            self.view.draw_highlight(last_move.0);
+            self.view.draw_highlight(last_move.1);
+        }
         match self.last_pressed {
             Some(LastPressed { square, piece }) => {
                 for (s, p) in self.gs.iter() {

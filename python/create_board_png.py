@@ -1,11 +1,18 @@
 import png
+from pathlib import Path
 
-type Color = tuple[int, int, int]
+# type Color = tuple[int, int, int]
+type Color = tuple[int, int, int, int]
 
-BOARD_DIM = 8
+BOARD_DIM = 1
 SQUARE_LENGTH = 80
-DARK: Color = (50, 90, 130)
-LIGHT: Color = (210, 200, 180)
+# Board colors
+# DARK: Color = (50, 90, 130)
+# LIGHT: Color = (210, 200, 180)
+# Highlight color
+DARK: Color = (50, 50, 170, 50)
+LIGHT: Color = DARK
+
 
 def create_row(current: Color, next: Color) -> list[int]:
     output = []
@@ -13,6 +20,7 @@ def create_row(current: Color, next: Color) -> list[int]:
         output.extend(current * SQUARE_LENGTH)
         current, next = next, current
     return output
+
 
 def create_board(light: Color, dark: Color) -> list[list[int]]:
     output = []
@@ -28,4 +36,5 @@ def create_board(light: Color, dark: Color) -> list[list[int]]:
 image_2d = create_board(LIGHT, DARK)
 
 # Save as PNG
-png.from_array(image_2d, 'RGB').save("output.png")
+path = Path("../assets/boards/highlight.png")
+png.from_array(image_2d, "RGBA").save(path)
