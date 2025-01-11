@@ -16,17 +16,17 @@ macro_rules! gen_table {
     }};
 }
 
-const fn shift_bb(bitboard: u64, cols: i8, rows: i8) -> u64 {
-    if rows.abs() >= 8 {
+const fn shift_bb<const COLS: i8, const ROWS: i8>(bitboard: u64) -> u64 {
+    if ROWS.abs() >= 8 || COLS.abs() >= 8 {
         return 0;
     }
-    let col_mask = if cols.is_positive() {
-        0xffu8 >> cols
+    let col_mask = if COLS.is_positive() {
+        0xffu16 >> COLS
     } else {
-        0xffu8 << -cols
-    };
+        0xffu16 << -COLS
+    } as u8;
     let masked_bitboard = bitboard & (col_mask as u64 * 0x0101010101010101);
-    let shift = 8 * rows + cols;
+    let shift = 8 * ROWS + COLS;
     if shift.is_positive() {
         masked_bitboard << shift
     } else {
@@ -34,27 +34,6 @@ const fn shift_bb(bitboard: u64, cols: i8, rows: i8) -> u64 {
     }
 }
 
-static COLUMNS: [BitBoard; 8] = [
-    BitBoard::from_col(Column::A),
-    BitBoard::from_col(Column::B),
-    BitBoard::from_col(Column::C),
-    BitBoard::from_col(Column::D),
-    BitBoard::from_col(Column::E),
-    BitBoard::from_col(Column::F),
-    BitBoard::from_col(Column::G),
-    BitBoard::from_col(Column::H),
-];
-static ROWS: [BitBoard; 8] = [
-    BitBoard::from_row(Row::One),
-    BitBoard::from_row(Row::Two),
-    BitBoard::from_row(Row::Three),
-    BitBoard::from_row(Row::Four),
-    BitBoard::from_row(Row::Five),
-    BitBoard::from_row(Row::Six),
-    BitBoard::from_row(Row::Seven),
-    BitBoard::from_row(Row::Eight),
-];
-static SQUARES: [BitBoard; 64] = gen_table!(BitBoard::from_square);
 static KING_MOVES: [BitBoard; 64] = gen_table!(BitBoard::king_move_mask);
 static KNIGHT_MOVES: [BitBoard; 64] = gen_table!(BitBoard::knight_move_mask);
 static WHITE_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mask, Color::White);
@@ -124,33 +103,37 @@ impl BitBoard {
 
     const fn king_move_mask(square: Square) -> Self {
         let square_mask = Self::from_square(square).0;
-        let lateral_mask = shift_bb(square_mask, -1, 0) | shift_bb(square_mask, 1, 0);
+        let lateral_mask = shift_bb::<-1, 0>(square_mask) | shift_bb::<1, 0>(square_mask);
         let screen_mask = lateral_mask | square_mask;
-        Self(lateral_mask | shift_bb(screen_mask, 0, 1) | shift_bb(screen_mask, 0, -1))
+        Self(lateral_mask | shift_bb::<0, 1>(screen_mask) | shift_bb::<0, -1>(screen_mask))
     }
 
     const fn knight_move_mask(square: Square) -> Self {
         let square_mask = Self::from_square(square).0;
         Self(
-            shift_bb(square_mask, 2, 1)
-                | shift_bb(square_mask, 2, -1)
-                | shift_bb(square_mask, -2, 1)
-                | shift_bb(square_mask, -2, -1)
-                | shift_bb(square_mask, 1, 2)
-                | shift_bb(square_mask, 1, -2)
-                | shift_bb(square_mask, -1, 2)
-                | shift_bb(square_mask, -1, -2),
+            shift_bb::<2, 1>(square_mask)
+                | shift_bb::<2, -1>(square_mask)
+                | shift_bb::<-2, 1>(square_mask)
+                | shift_bb::<-2, -1>(square_mask)
+                | shift_bb::<1, 2>(square_mask)
+                | shift_bb::<1, -2>(square_mask)
+                | shift_bb::<-1, 2>(square_mask)
+                | shift_bb::<-1, -2>(square_mask),
         )
     }
 
     const fn pawn_attack_mask(square: Square, color: Color) -> Self {
         let square_mask = Self::from_square(square).0;
-        let row_shift = match color {
-            Color::White => 1,
-            Color::Black => -1,
+        let (left, right) = match color {
+            Color::White => (
+                shift_bb::<-1, 1>(square_mask),
+                shift_bb::<1, 1>(square_mask),
+            ),
+            Color::Black => (
+                shift_bb::<-1, -1>(square_mask),
+                shift_bb::<1, -1>(square_mask),
+            ),
         };
-        let left = shift_bb(square_mask, -1, row_shift);
-        let right = shift_bb(square_mask, 1, row_shift);
         Self(left | right)
     }
 
@@ -164,20 +147,20 @@ impl BitBoard {
 }
 
 impl From<Square> for BitBoard {
-    fn from(value: Square) -> Self {
-        SQUARES[value]
+    fn from(s: Square) -> Self {
+        Self::from_square(s)
     }
 }
 
 impl From<Row> for BitBoard {
-    fn from(value: Row) -> Self {
-        ROWS[value]
+    fn from(r: Row) -> Self {
+        Self::from_row(r)
     }
 }
 
 impl From<Column> for BitBoard {
-    fn from(value: Column) -> Self {
-        COLUMNS[value]
+    fn from(c: Column) -> Self {
+        Self::from_col(c)
     }
 }
 
@@ -243,6 +226,86 @@ impl Iterator for BitBoardIter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_shift_bb_a1() {
+        let input = BitBoard::from(Square::A1).0;
+        let output = BitBoard::new(shift_bb::<1, 0>(input));
+        assert_eq!(output, BitBoard::from(Square::B1));
+        let output = BitBoard::new(shift_bb::<0, 1>(input));
+        assert_eq!(output, BitBoard::from(Square::A2));
+        let output = BitBoard::new(shift_bb::<1, 1>(input));
+        assert_eq!(output, BitBoard::from(Square::B2));
+
+        let output = BitBoard::new(shift_bb::<-1, 0>(input));
+        assert_eq!(output, BitBoard::new(0));
+        let output = BitBoard::new(shift_bb::<0, -1>(input));
+        assert_eq!(output, BitBoard::new(0));
+        let output = BitBoard::new(shift_bb::<-1, -1>(input));
+        assert_eq!(output, BitBoard::new(0));
+
+        let output = BitBoard::new(shift_bb::<7, 0>(input));
+        assert_eq!(output, BitBoard::from(Square::H1));
+        let output = BitBoard::new(shift_bb::<0, 7>(input));
+        assert_eq!(output, BitBoard::from(Square::A8));
+        let output = BitBoard::new(shift_bb::<7, 7>(input));
+        assert_eq!(output, BitBoard::from(Square::H8));
+    }
+
+    #[test]
+    fn test_shift_bb_h8() {
+        let input = BitBoard::from(Square::H8).0;
+        let output = BitBoard::new(shift_bb::<1, 0>(input));
+        assert_eq!(output, BitBoard::new(0));
+        let output = BitBoard::new(shift_bb::<0, 1>(input));
+        assert_eq!(output, BitBoard::new(0));
+        let output = BitBoard::new(shift_bb::<1, 1>(input));
+        assert_eq!(output, BitBoard::new(0));
+
+        let output = BitBoard::new(shift_bb::<-1, 0>(input));
+        assert_eq!(output, BitBoard::from(Square::G8));
+        let output = BitBoard::new(shift_bb::<0, -1>(input));
+        assert_eq!(output, BitBoard::from(Square::H7));
+        let output = BitBoard::new(shift_bb::<-1, -1>(input));
+        assert_eq!(output, BitBoard::from(Square::G7));
+
+        let output = BitBoard::new(shift_bb::<-7, 0>(input));
+        assert_eq!(output, BitBoard::from(Square::A8));
+        let output = BitBoard::new(shift_bb::<0, -7>(input));
+        assert_eq!(output, BitBoard::from(Square::H1));
+        let output = BitBoard::new(shift_bb::<-7, -7>(input));
+        assert_eq!(output, BitBoard::from(Square::A1));
+    }
+
+    #[test]
+    fn test_shift_bb_e4() {
+        let input = BitBoard::from(Square::E4).0;
+        let output = BitBoard::new(shift_bb::<-4, -3>(input));
+        assert_eq!(output, BitBoard::from(Square::A1));
+        let output = BitBoard::new(shift_bb::<-4, 0>(input));
+        assert_eq!(output, BitBoard::from(Square::A4));
+        let output = BitBoard::new(shift_bb::<-4, 4>(input));
+        assert_eq!(output, BitBoard::from(Square::A8));
+        let output = BitBoard::new(shift_bb::<0, 4>(input));
+        assert_eq!(output, BitBoard::from(Square::E8));
+        let output = BitBoard::new(shift_bb::<3, 4>(input));
+        assert_eq!(output, BitBoard::from(Square::H8));
+        let output = BitBoard::new(shift_bb::<3, 0>(input));
+        assert_eq!(output, BitBoard::from(Square::H4));
+        let output = BitBoard::new(shift_bb::<3, -3>(input));
+        assert_eq!(output, BitBoard::from(Square::H1));
+        let output = BitBoard::new(shift_bb::<0, -3>(input));
+        assert_eq!(output, BitBoard::from(Square::E1));
+
+        let output = BitBoard::new(shift_bb::<4, 0>(input));
+        assert_eq!(output, BitBoard::new(0));
+        let output = BitBoard::new(shift_bb::<-5, 0>(input));
+        assert_eq!(output, BitBoard::new(0));
+        let output = BitBoard::new(shift_bb::<0, 5>(input));
+        assert_eq!(output, BitBoard::new(0));
+        let output = BitBoard::new(shift_bb::<0, -4>(input));
+        assert_eq!(output, BitBoard::new(0));
+    }
 
     #[test]
     fn test_king_moves() {
