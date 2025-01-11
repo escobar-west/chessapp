@@ -78,10 +78,12 @@ impl Board {
             color: turn,
             figure: Figure::King,
         };
-        let Some(king_sq) = self.iter_piece(king).next() else {
-            return false;
-        };
-        let enemy_king_mask = BitBoard::king_moves(king_sq);
+        self.iter_piece(king)
+            .any(|s| self.is_square_attacked(s, turn))
+    }
+
+    pub fn is_square_attacked(&self, square: Square, turn: Color) -> bool {
+        let enemy_king_mask = BitBoard::king_moves(square);
         let enemy_king_location = self.get_piece_board(Piece {
             color: !turn,
             figure: Figure::King,
@@ -89,7 +91,7 @@ impl Board {
         if !(enemy_king_mask & enemy_king_location).empty() {
             return true;
         }
-        let enemy_knight_mask = BitBoard::knight_moves(king_sq);
+        let enemy_knight_mask = BitBoard::knight_moves(square);
         let enemy_knight_location = self.get_piece_board(Piece {
             color: !turn,
             figure: Figure::Knight,
