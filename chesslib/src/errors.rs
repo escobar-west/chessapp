@@ -11,6 +11,8 @@ pub enum MoveError {
     IllegalMove,
     #[error("King in check")]
     KingInCheck,
+    #[error("Pawn Promotion")]
+    PawnPromotion,
 }
 
 #[derive(Error, Debug, Clone)]

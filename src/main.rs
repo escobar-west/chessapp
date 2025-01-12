@@ -1,6 +1,6 @@
 mod view;
 
-use chesslib::prelude::*;
+use chesslib::{errors::MoveError, prelude::*};
 use errors::AppError;
 use macroquad::{
     input::{MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position},
@@ -54,9 +54,20 @@ impl App {
                     let res = self.gs.make_move(last_pressed.square, to);
                     #[cfg(debug_assertions)]
                     debug!("{:#?}", res);
-                    self.view.play_sound_from_move_result(res);
-                    if let Ok(_) = res {
-                        self.last_move = Some((last_pressed.square, to));
+                    match res {
+                        Ok(Some(_)) => {
+                            self.last_move = Some((last_pressed.square, to));
+                            self.view.play_capture_sound();
+                        }
+                        Ok(None) => {
+                            self.last_move = Some((last_pressed.square, to));
+                            self.view.play_move_sound();
+                        }
+                        Err(MoveError::KingInCheck) => {
+                            self.view.play_in_check_sound();
+                        }
+                        Err(MoveError::PawnPromotion) => {}
+                        _ => {}
                     }
                 };
             }

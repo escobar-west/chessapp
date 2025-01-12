@@ -94,14 +94,16 @@ impl View {
         self.draw_piece_at(piece, top_left_x, top_left_y);
     }
 
-    pub fn play_sound_from_move_result(&self, move_result: Result<Option<Piece>, MoveError>) {
-        let sound = match move_result {
-            Ok(None) => &self.move_sound,
-            Ok(Some(_)) => &self.capture_sound,
-            Err(MoveError::KingInCheck) => &self.in_check_sound,
-            _ => return,
-        };
-        play_sound_once(sound);
+    pub fn play_move_sound(&self) {
+        play_sound_once(&self.move_sound);
+    }
+
+    pub fn play_capture_sound(&self) {
+        play_sound_once(&self.capture_sound);
+    }
+
+    pub fn play_in_check_sound(&self) {
+        play_sound_once(&self.in_check_sound);
     }
 
     fn draw_piece_at(&self, piece: Piece, x: f32, y: f32) {
