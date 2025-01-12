@@ -38,36 +38,45 @@ impl App {
         })
     }
 
+    fn get_last_pressed(&self, square: Square) -> Option<LastPressed> {
+        self.gs
+            .get_sq(square)
+            .map(|piece| LastPressed { square, piece })
+    }
+
+    fn submit_move(&mut self, from: Square, to: Square) {
+        let res = self.gs.make_move(from, to);
+        #[cfg(debug_assertions)]
+        debug!("{:#?}", res);
+        match res {
+            Ok(Some(_)) => {
+                self.last_move = Some((from, to));
+                self.view.play_capture_sound();
+            }
+            Ok(None) => {
+                self.last_move = Some((from, to));
+                self.view.play_move_sound();
+            }
+            Err(MoveError::KingInCheck) => {
+                self.view.play_in_check_sound();
+            }
+            Err(MoveError::PawnPromotion) => {}
+            _ => {}
+        }
+    }
+
     fn update_state(&mut self) {
         self.view.update_screen();
         self.mouse = mouse_position();
         if is_mouse_button_pressed(MouseButton::Left) {
-            let square = self.view.get_square_at_point(self.mouse);
-            let piece = square.and_then(|s| self.gs.get_sq(s));
-            self.last_pressed = square
-                .zip(piece)
-                .map(|(square, piece)| LastPressed { square, piece })
+            self.last_pressed = self
+                .view
+                .get_square_at_point(self.mouse)
+                .and_then(|s| self.get_last_pressed(s));
         } else if !is_mouse_button_down(MouseButton::Left) {
             if let Some(last_pressed) = self.last_pressed {
                 if let Some(to) = self.view.get_square_at_point(self.mouse) {
-                    let res = self.gs.make_move(last_pressed.square, to);
-                    #[cfg(debug_assertions)]
-                    debug!("{:#?}", res);
-                    match res {
-                        Ok(Some(_)) => {
-                            self.last_move = Some((last_pressed.square, to));
-                            self.view.play_capture_sound();
-                        }
-                        Ok(None) => {
-                            self.last_move = Some((last_pressed.square, to));
-                            self.view.play_move_sound();
-                        }
-                        Err(MoveError::KingInCheck) => {
-                            self.view.play_in_check_sound();
-                        }
-                        Err(MoveError::PawnPromotion) => {}
-                        _ => {}
-                    }
+                    self.submit_move(last_pressed.square, to);
                 };
             }
             self.last_pressed = None;
