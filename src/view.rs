@@ -1,4 +1,4 @@
-use chesslib::{errors::MoveError, prelude::*};
+use chesslib::prelude::*;
 use macroquad::{
     audio::{Sound, load_sound, play_sound_once},
     color::WHITE,

@@ -3,7 +3,7 @@ mod view;
 use chesslib::{errors::MoveError, prelude::*};
 use errors::AppError;
 use macroquad::{
-    input::{MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position},
+    input::{MouseButton, is_mouse_button_down, is_mouse_button_pressed, mouse_position},
     logging::debug,
 };
 use view::View;
@@ -47,8 +47,7 @@ impl App {
             self.last_pressed = square
                 .zip(piece)
                 .map(|(square, piece)| LastPressed { square, piece })
-        }
-        if is_mouse_button_released(MouseButton::Left) {
+        } else if !is_mouse_button_down(MouseButton::Left) {
             if let Some(last_pressed) = self.last_pressed {
                 if let Some(to) = self.view.get_square_at_point(self.mouse) {
                     let res = self.gs.make_move(last_pressed.square, to);

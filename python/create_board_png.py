@@ -10,7 +10,7 @@ SQUARE_LENGTH = 80
 # DARK: Color = (50, 90, 130)
 # LIGHT: Color = (210, 200, 180)
 # Highlight color
-DARK: Color = (50, 50, 170, 50)
+DARK: Color = (50, 50, 200, 80)
 LIGHT: Color = DARK
 
 
