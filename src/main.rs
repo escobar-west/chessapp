@@ -21,7 +21,7 @@ struct App {
     gs: GameState,
     view: View,
     mouse: (f32, f32),
-    last_pressed: Option<LastPressed>,
+    app_state: AppState,
     last_move: Option<(Square, Square)>,
 }
 
@@ -33,22 +33,94 @@ impl App {
             gs,
             view,
             mouse: mouse_position(),
-            last_pressed: None,
+            app_state: AppState::Free,
             last_move: None,
         })
     }
 
-    fn get_last_pressed(&self, square: Square) -> Option<LastPressed> {
-        self.gs
-            .get_sq(square)
-            .map(|piece| LastPressed { square, piece })
+    fn update_state(&mut self) {
+        self.view.update_screen();
+        self.mouse = mouse_position();
+        match self.app_state {
+            AppState::Free => self.update_free(),
+            AppState::Clicked { square, piece } => self.update_clicked(square, piece),
+            AppState::Promoting { from, to } => self.update_promoting(from, to),
+        }
     }
 
-    fn submit_move(&mut self, from: Square, to: Square) {
-        let res = self.gs.make_move(from, to);
-        #[cfg(debug_assertions)]
-        debug!("{:#?}", res);
-        match res {
+    fn update_free(&mut self) {
+        if is_mouse_button_pressed(MouseButton::Left) {
+            let Some(square) = self.view.get_square_at_point(self.mouse) else {
+                return;
+            };
+            let Some(piece) = self.gs.get_sq(square) else {
+                return;
+            };
+            self.app_state = AppState::Clicked { square, piece };
+        }
+    }
+
+    fn update_clicked(&mut self, square: Square, _piece: Piece) {
+        if !is_mouse_button_down(MouseButton::Left) {
+            self.app_state = AppState::Free;
+            if let Some(to) = self.view.get_square_at_point(self.mouse) {
+                match self.gs.make_move(square, to) {
+                    Ok(Some(_)) => {
+                        self.last_move = Some((square, to));
+                        self.view.play_capture_sound();
+                    }
+                    Ok(None) => {
+                        self.last_move = Some((square, to));
+                        self.view.play_move_sound();
+                    }
+                    Err(MoveError::KingInCheck) => {
+                        self.view.play_in_check_sound();
+                    }
+                    Err(MoveError::PawnPromotion) => {
+                        self.app_state = AppState::Promoting { from: square, to };
+                    }
+                    _ => {}
+                }
+            };
+        }
+    }
+
+    fn get_promotion_piece(&self, rank: Row) -> Option<Piece> {
+        let color = self.gs.get_turn();
+        let figure = match color {
+            Color::Black => match rank {
+                Row::One => Some(Figure::Queen),
+                Row::Two => Some(Figure::Rook),
+                Row::Three => Some(Figure::Knight),
+                Row::Four => Some(Figure::Bishop),
+                _ => None,
+            },
+            Color::White => match rank {
+                Row::Eight => Some(Figure::Queen),
+                Row::Seven => Some(Figure::Rook),
+                Row::Six => Some(Figure::Knight),
+                Row::Five => Some(Figure::Bishop),
+                _ => None,
+            },
+        };
+        figure.map(|f| Piece { color, figure: f })
+    }
+
+    fn update_promoting(&mut self, from: Square, to: Square) {
+        if !is_mouse_button_pressed(MouseButton::Left) {
+            return;
+        }
+        self.app_state = AppState::Free;
+        let Some(clicked) = self.view.get_square_at_point(self.mouse) else {
+            return;
+        };
+        if clicked.col() != to.col() {
+            return;
+        }
+        let Some(piece) = self.get_promotion_piece(clicked.row()) else {
+            return;
+        };
+        match self.gs.make_promotion(from, to, piece) {
             Ok(Some(_)) => {
                 self.last_move = Some((from, to));
                 self.view.play_capture_sound();
@@ -60,26 +132,7 @@ impl App {
             Err(MoveError::KingInCheck) => {
                 self.view.play_in_check_sound();
             }
-            Err(MoveError::PawnPromotion) => {}
             _ => {}
-        }
-    }
-
-    fn update_state(&mut self) {
-        self.view.update_screen();
-        self.mouse = mouse_position();
-        if is_mouse_button_pressed(MouseButton::Left) {
-            self.last_pressed = self
-                .view
-                .get_square_at_point(self.mouse)
-                .and_then(|s| self.get_last_pressed(s));
-        } else if !is_mouse_button_down(MouseButton::Left) {
-            if let Some(last_pressed) = self.last_pressed {
-                if let Some(to) = self.view.get_square_at_point(self.mouse) {
-                    self.submit_move(last_pressed.square, to);
-                };
-            }
-            self.last_pressed = None;
         }
     }
 
@@ -89,8 +142,13 @@ impl App {
             self.view.draw_highlight(last_move.0);
             self.view.draw_highlight(last_move.1);
         }
-        match self.last_pressed {
-            Some(LastPressed { square, piece }) => {
+        match self.app_state {
+            AppState::Free => {
+                for (square, piece) in self.gs.iter() {
+                    self.view.draw_piece_at_square(piece, square);
+                }
+            }
+            AppState::Clicked { square, piece } => {
                 for (s, p) in self.gs.iter() {
                     if s != square {
                         self.view.draw_piece_at_square(p, s);
@@ -98,20 +156,24 @@ impl App {
                 }
                 self.view.draw_piece_at_point(piece, self.mouse);
             }
-            None => {
-                for (square, piece) in self.gs.iter() {
-                    self.view.draw_piece_at_square(piece, square);
+            AppState::Promoting { from, to } => {
+                for (s, p) in self.gs.iter() {
+                    if s != from {
+                        self.view.draw_piece_at_square(p, s);
+                    }
                 }
+                self.view
+                    .draw_promotion_widget(to.col(), self.gs.get_turn());
             }
         }
         self.view.next_frame().await;
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct LastPressed {
-    square: Square,
-    piece: Piece,
+enum AppState {
+    Free,
+    Clicked { square: Square, piece: Piece },
+    Promoting { from: Square, to: Square },
 }
 
 pub mod errors {

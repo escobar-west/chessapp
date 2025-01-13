@@ -3,6 +3,7 @@ use macroquad::{
     audio::{Sound, load_sound, play_sound_once},
     color::WHITE,
     math::{Rect, Vec2},
+    shapes::draw_rectangle,
     texture::{DrawTextureParams, Texture2D, draw_texture_ex, load_texture},
     window::{next_frame, screen_height, screen_width},
 };
@@ -58,6 +59,34 @@ impl View {
             dest_size: Some(Vec2::splat(self.board_size)),
             ..Default::default()
         });
+    }
+
+    pub fn draw_promotion_widget(&self, col: Column, turn: Color) {
+        let (y_coord, rows) = match turn {
+            Color::White => (0.0, [Row::Eight, Row::Seven, Row::Six, Row::Five]),
+            Color::Black => (4.0 * self.square_size, [
+                Row::One,
+                Row::Two,
+                Row::Three,
+                Row::Four,
+            ]),
+        };
+        draw_rectangle(
+            col as u8 as f32 * self.square_size,
+            y_coord,
+            self.square_size,
+            4.0 * self.square_size,
+            WHITE,
+        );
+        let figures = [Figure::Queen, Figure::Rook, Figure::Knight, Figure::Bishop];
+        for (r, f) in rows.into_iter().zip(figures.into_iter()) {
+            let square = Square::from_coords(col, r);
+            let piece = Piece {
+                color: turn,
+                figure: f,
+            };
+            self.draw_piece_at_square(piece, square);
+        }
     }
 
     pub fn draw_highlight(&self, square: Square) {

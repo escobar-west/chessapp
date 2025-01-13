@@ -25,10 +25,6 @@ static BLACK_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mas
 pub struct BitBoard(u64);
 
 impl BitBoard {
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-
     pub fn king_moves(square: Square) -> Self {
         KING_MOVES[square]
     }
@@ -261,11 +257,11 @@ mod tests {
         assert_eq!(output, BitBoard::from(Square::B2));
 
         let output = input.shift::<-1, 0>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
         let output = input.shift::<0, -1>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
         let output = input.shift::<-1, -1>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
 
         let output = input.shift::<7, 0>();
         assert_eq!(output, BitBoard::from(Square::H1));
@@ -279,11 +275,11 @@ mod tests {
     fn test_shift_h8() {
         let input = BitBoard::from(Square::H8);
         let output = input.shift::<1, 0>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
         let output = input.shift::<0, 1>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
         let output = input.shift::<1, 1>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
 
         let output = input.shift::<-1, 0>();
         assert_eq!(output, BitBoard::from(Square::G8));
@@ -321,13 +317,13 @@ mod tests {
         assert_eq!(output, BitBoard::from(Square::E1));
 
         let output = input.shift::<4, 0>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
         let output = input.shift::<-5, 0>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
         let output = input.shift::<0, 5>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
         let output = input.shift::<0, -4>();
-        assert_eq!(output, BitBoard::new(0));
+        assert_eq!(output, BitBoard(0));
     }
 
     #[test]
@@ -407,11 +403,11 @@ mod tests {
         let lsb = bitboard.bitscan_forward();
         assert_eq!(lsb, Some(Square::H8));
 
-        let bitboard = BitBoard::new(std::u64::MAX);
+        let bitboard = BitBoard(std::u64::MAX);
         let lsb = bitboard.bitscan_forward();
         assert_eq!(lsb, Some(Square::A1));
 
-        let bitboard = BitBoard::new(0);
+        let bitboard = BitBoard(0);
         let lsb = bitboard.bitscan_forward();
         assert_eq!(lsb, None);
     }

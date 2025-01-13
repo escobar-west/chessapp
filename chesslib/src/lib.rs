@@ -1,9 +1,11 @@
 #![allow(dead_code)]
+#![feature(let_chains)]
 pub mod board;
 pub mod errors;
 pub mod pieces;
 
 use board::Board;
+use board::Row;
 use board::Square;
 use errors::{MoveError, ParseFenError};
 use pieces::{
@@ -50,8 +52,40 @@ impl GameState {
         })
     }
 
+    pub fn get_turn(&self) -> Color {
+        self.turn
+    }
+
     pub fn get_sq(&self, square: Square) -> Option<Piece> {
         self.board.get_sq(square)
+    }
+
+    pub fn make_promotion(
+        &mut self,
+        from: Square,
+        to: Square,
+        promotion_piece: Piece,
+    ) -> Result<Option<Piece>, MoveError> {
+        let Some(piece) = self.board.get_sq(from) else {
+            return Err(MoveError::EmptySquare);
+        };
+        if piece.color != self.turn {
+            return Err(MoveError::WrongTurn);
+        }
+        if !self.board.is_pseudolegal(piece, from, to) {
+            return Err(MoveError::IllegalMove);
+        }
+        let captured = self.board.move_piece(from, to);
+        if self.board.is_in_check(self.turn) {
+            self.board.reverse_move_piece(from, to, captured);
+            return Err(MoveError::KingInCheck);
+        }
+        self.board.set_sq(to, promotion_piece);
+        if self.turn == Color::Black {
+            self.full_move += 1;
+        }
+        self.turn = !self.turn;
+        Ok(captured)
     }
 
     pub fn make_move(&mut self, from: Square, to: Square) -> Result<Option<Piece>, MoveError> {
@@ -64,15 +98,38 @@ impl GameState {
         if !self.board.is_pseudolegal(piece, from, to) {
             return Err(MoveError::IllegalMove);
         }
-        let captured = self.board.move_piece(from, to);
-        if self.board.is_in_check(piece.color) {
-            self.board.reverse_move_piece(from, to, captured);
-            return Err(MoveError::KingInCheck);
-        }
+        let captured = self.test_move(self.turn, from, to)?;
         if self.turn == Color::Black {
             self.full_move += 1;
         }
         self.turn = !self.turn;
+        Ok(captured)
+    }
+
+    pub fn test_move(
+        &mut self,
+        turn: Color,
+        from: Square,
+        to: Square,
+    ) -> Result<Option<Piece>, MoveError> {
+        let captured = self.board.move_piece(from, to);
+        if self.board.is_in_check(turn) {
+            self.board.reverse_move_piece(from, to, captured);
+            return Err(MoveError::KingInCheck);
+        }
+        let last_row = match turn {
+            Color::White => Row::Eight,
+            Color::Black => Row::One,
+        };
+        if to.row() == last_row
+            && let Some(Piece {
+                color: _,
+                figure: pieces::Figure::Pawn,
+            }) = self.board.get_sq(to)
+        {
+            self.board.reverse_move_piece(from, to, captured);
+            return Err(MoveError::PawnPromotion);
+        }
         Ok(captured)
     }
 
