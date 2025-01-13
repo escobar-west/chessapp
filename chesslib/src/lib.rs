@@ -128,7 +128,7 @@ impl GameState {
             }) = self.board.get_sq(to)
         {
             self.board.reverse_move_piece(from, to, captured);
-            return Err(MoveError::PawnPromotion);
+            return Err(MoveError::Promoting);
         }
         Ok(captured)
     }

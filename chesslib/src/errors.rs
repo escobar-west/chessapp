@@ -12,7 +12,7 @@ pub enum MoveError {
     #[error("King in check")]
     KingInCheck,
     #[error("Pawn Promotion")]
-    PawnPromotion,
+    Promoting,
 }
 
 #[derive(Error, Debug, Clone)]
