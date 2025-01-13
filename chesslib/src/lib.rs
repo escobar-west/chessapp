@@ -72,7 +72,7 @@ impl GameState {
         if piece.color != self.turn {
             return Err(MoveError::WrongTurn);
         }
-        if !self.board.is_pseudolegal(piece, from, to) {
+        if !self.board.is_pseudolegal(piece, from, to, self.turn) {
             return Err(MoveError::IllegalMove);
         }
         let captured = self.board.move_piece(from, to);
@@ -95,7 +95,7 @@ impl GameState {
         if piece.color != self.turn {
             return Err(MoveError::WrongTurn);
         }
-        if !self.board.is_pseudolegal(piece, from, to) {
+        if !self.board.is_pseudolegal(piece, from, to, self.turn) {
             return Err(MoveError::IllegalMove);
         }
         let captured = self.test_move(self.turn, from, to)?;
@@ -151,5 +151,5 @@ pub mod constants {
     pub const DEFAULT_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
     pub const KN: &str = "8/8/4k3/3N1n2/4K3/8/8/8 w - - 0 1";
-    pub const KNP: &str = "1n2k3/2P2p2/6N1/8/8/6n1/2p2P2/1NN1K3 w - - 0 1";
+    pub const KNP: &str = "nnnNNNk1/1P2P1P1/8/8/3p2p1/1Pp1p1p1/P1PP1P1P/2K5 w - - 0 1";
 }

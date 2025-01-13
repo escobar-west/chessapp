@@ -79,7 +79,7 @@ impl BitBoard {
         Self(1 << s as u8)
     }
 
-    const fn shift<const COLS: i8, const ROWS: i8>(self) -> Self {
+    pub const fn shift<const COLS: i8, const ROWS: i8>(self) -> Self {
         if ROWS.abs() >= 8 || COLS.abs() >= 8 {
             return Self(0);
         }

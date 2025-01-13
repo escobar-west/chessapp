@@ -64,8 +64,8 @@ impl Board {
         }
     }
 
-    pub fn is_pseudolegal(&self, piece: Piece, from: Square, to: Square) -> bool {
-        let move_mask = self.get_move_mask(piece, from);
+    pub fn is_pseudolegal(&self, piece: Piece, from: Square, to: Square, turn: Color) -> bool {
+        let move_mask = self.get_move_mask(piece, from, turn);
         move_mask & to.into() != BitBoard::default()
     }
 
@@ -99,7 +99,7 @@ impl Board {
         if !(enemy_knight_mask & enemy_knight_location).empty() {
             return true;
         }
-        let enemy_pawn_mask = BitBoard::king_moves(square);
+        let enemy_pawn_mask = self.get_pawn_moves(square, turn);
         let enemy_pawn_location = self.get_piece_board(Piece {
             color: !turn,
             figure: Figure::Pawn,
@@ -141,26 +141,42 @@ impl Board {
         Ok(board)
     }
 
-    fn get_move_mask(&self, piece: Piece, from: Square) -> BitBoard {
-        let move_mask = match piece.figure {
-            Figure::King => BitBoard::king_moves(from),
-            Figure::Knight => BitBoard::knight_moves(from),
-            Figure::Pawn => BitBoard::king_moves(from),
+    fn get_move_mask(&self, piece: Piece, from: Square, turn: Color) -> BitBoard {
+        match piece.figure {
+            Figure::King => BitBoard::king_moves(from) & !self.occupied_color(piece.color),
+            Figure::Knight => BitBoard::knight_moves(from) & !self.occupied_color(piece.color),
+            Figure::Pawn => self.get_pawn_moves(from, turn),
             _ => BitBoard::default(),
+        }
+    }
+
+    fn get_pawn_moves(&self, from: Square, turn: Color) -> BitBoard {
+        let attacks = BitBoard::pawn_attacks(from, turn) & self.occupied_color(!turn);
+        let moves = match turn {
+            Color::White => {
+                let mut moves = BitBoard::from(from).shift::<0, 1>() & !self.occupied;
+                moves |= moves.shift::<0, 1>() & Row::Four.into() & !self.occupied;
+                moves
+            }
+            Color::Black => {
+                let mut moves = BitBoard::from(from).shift::<0, -1>() & !self.occupied;
+                moves |= moves.shift::<0, -1>() & Row::Five.into() & !self.occupied;
+                moves
+            }
         };
-        move_mask & !self.occupied(piece.color)
+        attacks | moves
     }
 
     fn clear_piece_board(&mut self, piece: Piece, mask: BitBoard) {
         let should_keep = !mask;
         *self.get_piece_board_mut(piece) &= should_keep;
-        *self.occupied_mut(piece.color) &= should_keep;
+        *self.occupied_color_mut(piece.color) &= should_keep;
         self.occupied &= should_keep;
     }
 
     fn set_piece_board(&mut self, piece: Piece, mask: BitBoard) {
         *self.get_piece_board_mut(piece) |= mask;
-        *self.occupied_mut(piece.color) |= mask;
+        *self.occupied_color_mut(piece.color) |= mask;
         self.occupied |= mask;
     }
 
@@ -198,14 +214,14 @@ impl Board {
         }
     }
 
-    fn occupied(&self, color: Color) -> BitBoard {
+    fn occupied_color(&self, color: Color) -> BitBoard {
         match color {
             Color::White => self.white_pieces.occupied,
             Color::Black => self.black_pieces.occupied,
         }
     }
 
-    fn occupied_mut(&mut self, color: Color) -> &mut BitBoard {
+    fn occupied_color_mut(&mut self, color: Color) -> &mut BitBoard {
         match color {
             Color::White => &mut self.white_pieces.occupied,
             Color::Black => &mut self.black_pieces.occupied,

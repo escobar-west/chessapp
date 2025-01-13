@@ -55,10 +55,10 @@ fn test_default_fen() {
     );
 
     let white_mask = BitBoard::from(Row::One) | BitBoard::from(Row::Two);
-    assert_eq!(board.occupied(Color::White), white_mask);
+    assert_eq!(board.occupied_color(Color::White), white_mask);
 
     let black_mask = BitBoard::from(Row::Seven) | BitBoard::from(Row::Eight);
-    assert_eq!(board.occupied(Color::Black), black_mask);
+    assert_eq!(board.occupied_color(Color::Black), black_mask);
 
     let occ_mask = white_mask | black_mask;
     assert_eq!(board.occupied, occ_mask);
