@@ -52,21 +52,6 @@ impl BitBoard {
         BitBoardIter { rem_board: self }
     }
 
-    pub fn print_board(self, c: char) {
-        let mut char_board: [char; 64] = ['☐'; 64];
-        for square in self.iter() {
-            char_board[square] = c;
-        }
-        let mut out_str = String::new();
-        for i in (0..8).rev() {
-            let offset = 8 * i as usize;
-            let row: String = char_board[offset..offset + 8].iter().collect();
-            out_str.push_str(&row);
-            out_str.push('\n')
-        }
-        println!("{}", out_str);
-    }
-
     const fn from_col(c: Column) -> Self {
         Self(0x0101010101010101 << c as u8)
     }
@@ -245,6 +230,21 @@ impl Iterator for BitBoardIter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    pub fn print_board(board: BitBoard, c: char) {
+        let mut char_board: [char; 64] = ['☐'; 64];
+        for square in board.iter() {
+            char_board[square] = c;
+        }
+        let mut out_str = String::new();
+        for i in (0..8).rev() {
+            let offset = 8 * i as usize;
+            let row: String = char_board[offset..offset + 8].iter().collect();
+            out_str.push_str(&row);
+            out_str.push('\n')
+        }
+        println!("{}", out_str);
+    }
 
     #[test]
     fn test_shift_a1() {

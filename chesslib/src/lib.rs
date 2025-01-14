@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![feature(let_chains)]
 pub mod board;
 pub mod errors;

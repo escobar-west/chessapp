@@ -2,9 +2,8 @@ mod view;
 
 use chesslib::{errors::MoveError, prelude::*};
 use errors::AppError;
-use macroquad::{
-    input::{MouseButton, is_mouse_button_down, is_mouse_button_pressed, mouse_position},
-    logging::debug,
+use macroquad::input::{
+    MouseButton, is_mouse_button_down, is_mouse_button_pressed, mouse_position,
 };
 use view::View;
 
