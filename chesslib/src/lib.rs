@@ -8,7 +8,7 @@ use board::Row;
 use board::Square;
 use errors::{MoveError, ParseFenError};
 use pieces::{
-    Color, Piece,
+    Color, Figure, Piece,
     constants::{BLACK_KING, WHITE_KING},
 };
 
@@ -16,6 +16,7 @@ use pieces::{
 pub struct GameState {
     board: Board,
     turn: Color,
+    ep_square: Option<Square>,
     half_move: u16,
     full_move: u16,
 }
@@ -46,6 +47,7 @@ impl GameState {
         Ok(GameState {
             board,
             turn,
+            ep_square: None,
             half_move,
             full_move,
         })
@@ -80,6 +82,24 @@ impl GameState {
             return Err(MoveError::KingInCheck);
         }
         self.board.set_sq(to, promotion_piece);
+
+        self.ep_square = None;
+
+        if self.turn == Color::Black {
+            self.full_move += 1;
+        }
+        self.turn = !self.turn;
+        Ok(captured)
+    }
+
+    fn test_ep_move(&mut self, from: Square) -> Result<Option<Piece>, MoveError> {
+        let to = self.ep_square.ok_or(MoveError::FailedEp)?;
+        let capture_sq = Square::from_coords(to.col(), from.row());
+        // check for lateral checks
+        self.board.move_piece(from, to);
+        let captured = self.board.clear_sq(capture_sq);
+        self.ep_square = None;
+
         if self.turn == Color::Black {
             self.full_move += 1;
         }
@@ -94,10 +114,28 @@ impl GameState {
         if piece.color != self.turn {
             return Err(MoveError::WrongTurn);
         }
-        if !self.board.is_pseudolegal(piece, from, to, self.turn) {
-            return Err(MoveError::IllegalMove);
+        let captured = match self.ep_square {
+            Some(ep) if self.board.is_pawn_attack(from, ep, self.turn) => {
+                self.test_ep_move(from)?
+            }
+            _ => self.test_move(piece, self.turn, from, to)?,
+        };
+
+        if piece.figure != Figure::Pawn
+            || (from.row(), to.row())
+                != match self.turn {
+                    Color::White => (Row::Two, Row::Four),
+                    Color::Black => (Row::Seven, Row::Five),
+                }
+        {
+            self.ep_square = None;
+        } else {
+            self.ep_square = match self.turn {
+                Color::White => Some(Square::from_coords(to.col(), Row::Three)),
+                Color::Black => Some(Square::from_coords(to.col(), Row::Six)),
+            }
         }
-        let captured = self.test_move(self.turn, from, to)?;
+
         if self.turn == Color::Black {
             self.full_move += 1;
         }
@@ -105,12 +143,16 @@ impl GameState {
         Ok(captured)
     }
 
-    pub fn test_move(
+    fn test_move(
         &mut self,
+        piece: Piece,
         turn: Color,
         from: Square,
         to: Square,
     ) -> Result<Option<Piece>, MoveError> {
+        if !self.board.is_pseudolegal(piece, from, to, self.turn) {
+            return Err(MoveError::IllegalMove);
+        }
         let captured = self.board.move_piece(from, to);
         if self.board.is_in_check(turn) {
             self.board.reverse_move_piece(from, to, captured);

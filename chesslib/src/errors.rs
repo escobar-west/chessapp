@@ -13,6 +13,8 @@ pub enum MoveError {
     KingInCheck,
     #[error("Pawn Promotion")]
     Promoting,
+    #[error("Failed EP")]
+    FailedEp,
 }
 
 #[derive(Error, Debug, Clone)]

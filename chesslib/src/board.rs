@@ -110,6 +110,10 @@ impl Board {
         false
     }
 
+    pub fn is_pawn_attack(&self, from: Square, ep: Square, color: Color) -> bool {
+        !(BitBoard::pawn_attacks(from, color) & ep.into()).empty()
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
         self.white_pieces.iter().chain(self.black_pieces.iter())
     }
