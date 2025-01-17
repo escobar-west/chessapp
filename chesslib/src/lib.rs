@@ -1,16 +1,21 @@
 #![feature(let_chains)]
+#![feature(adt_const_params)]
 pub mod board;
 pub mod errors;
 pub mod pieces;
 
-use board::Board;
+use core::panic;
+
 use board::Row;
 use board::Square;
+use board::{Board, bitboard::BitBoard};
 use errors::{MoveError, ParseFenError};
 use pieces::{
     Color, Figure, Piece,
     constants::{BLACK_KING, WHITE_KING},
 };
+
+type MoveResult = Result<Option<Piece>, MoveError>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct GameState {
@@ -66,110 +71,130 @@ impl GameState {
         from: Square,
         to: Square,
         promotion_piece: Piece,
-    ) -> Result<Option<Piece>, MoveError> {
-        let Some(piece) = self.board.get_sq(from) else {
+    ) -> MoveResult {
+        let Some(Piece { color, figure: _ }) = self.board.get_sq(from) else {
             return Err(MoveError::EmptySquare);
         };
-        if piece.color != self.turn {
+        if color != self.turn {
             return Err(MoveError::WrongTurn);
         }
-        if !self.board.is_pseudolegal(piece, from, to, self.turn) {
-            return Err(MoveError::IllegalMove);
+        let moves = self.board.pawn_moves(from, self.turn);
+        let captured = if moves.contains(to) {
+            self.test_move_for_check(from, to)
+        } else {
+            Err(MoveError::IllegalMove)
+        }?;
+        self.board.set_sq(to, promotion_piece);
+        self.ep_square = None;
+        if self.turn == Color::Black {
+            self.full_move += 1;
         }
+        self.turn = !self.turn;
+        Ok(captured)
+    }
+
+    pub fn make_move(&mut self, from: Square, to: Square) -> MoveResult {
+        let Some(Piece { color, figure }) = self.board.get_sq(from) else {
+            return Err(MoveError::EmptySquare);
+        };
+        if color != self.turn {
+            return Err(MoveError::WrongTurn);
+        }
+        let captured = match figure {
+            Figure::Pawn => self.make_pawn_move(from, to)?,
+            Figure::King => self.make_king_move(from, to)?,
+            Figure::Knight => self.make_generic_move::<{ Figure::Knight }>(from, to)?,
+            Figure::Rook => self.make_generic_move::<{ Figure::Rook }>(from, to)?,
+            Figure::Bishop => self.make_generic_move::<{ Figure::Bishop }>(from, to)?,
+            Figure::Queen => self.make_generic_move::<{ Figure::Queen }>(from, to)?,
+        };
+        if self.turn == Color::Black {
+            self.full_move += 1;
+        }
+        self.turn = !self.turn;
+        Ok(captured)
+    }
+
+    fn make_pawn_move(&mut self, from: Square, to: Square) -> MoveResult {
+        let non_ep_moves = self.board.pawn_moves(from, self.turn);
+        let captured = if non_ep_moves.contains(to) {
+            let captured = self.test_move_for_check(from, to)?;
+            let last_row = match self.turn {
+                Color::White => Row::Eight,
+                Color::Black => Row::One,
+            };
+            if to.row() == last_row {
+                self.board.unmove_piece(from, to, captured);
+                return Err(MoveError::Promoting);
+            }
+            Ok(captured)
+        } else if let Some(ep) = self.ep_square
+            && to == ep
+            && BitBoard::pawn_attacks(from, self.turn).contains(to)
+        {
+            let capture_sq = Square::from_coords(to.col(), from.row());
+            self.board.move_piece(from, to);
+            Ok(self.board.clear_sq(capture_sq))
+            // check for lateral checks
+        } else {
+            Err(MoveError::IllegalMove)
+        }?;
+        let (start_row, ep_row, end_row) = match self.turn {
+            Color::White => (Row::Two, Row::Three, Row::Four),
+            Color::Black => (Row::Seven, Row::Six, Row::Five),
+        };
+        if (from.row(), to.row()) == (start_row, end_row) {
+            self.ep_square = Some(Square::from_coords(to.col(), ep_row));
+        } else {
+            self.ep_square = None;
+        }
+        self.half_move = 0;
+        Ok(captured)
+    }
+
+    fn make_king_move(&mut self, from: Square, to: Square) -> MoveResult {
+        let non_castle_moves = BitBoard::king_moves(from) & !self.board.occupied_color(self.turn);
+        let captured = if non_castle_moves.contains(to) {
+            self.test_move_for_check(from, to)
+        } else if false {
+            Ok(None) // castle
+        } else {
+            Err(MoveError::IllegalMove)
+        }?;
+        self.ep_square = None;
+        match captured {
+            Some(_piece) => self.half_move = 0,
+            None => self.half_move += 1,
+        }
+        Ok(captured)
+    }
+
+    fn make_generic_move<const FIGURE: Figure>(&mut self, from: Square, to: Square) -> MoveResult {
+        let moves = match FIGURE {
+            Figure::Knight => BitBoard::knight_moves(from),
+            Figure::Rook => todo!(),
+            Figure::Bishop => todo!(),
+            Figure::Queen => todo!(),
+            _ => panic!("Cannot make a generic move with a King or Pawn"),
+        } & !self.board.occupied_color(self.turn);
+        let captured = if moves.contains(to) {
+            self.test_move_for_check(from, to)
+        } else {
+            Err(MoveError::IllegalMove)
+        }?;
+        self.ep_square = None;
+        match captured {
+            Some(_piece) => self.half_move = 0,
+            None => self.half_move += 1,
+        }
+        Ok(captured)
+    }
+
+    fn test_move_for_check(&mut self, from: Square, to: Square) -> MoveResult {
         let captured = self.board.move_piece(from, to);
         if self.board.is_in_check(self.turn) {
-            self.board.reverse_move_piece(from, to, captured);
+            self.board.unmove_piece(from, to, captured);
             return Err(MoveError::KingInCheck);
-        }
-        self.board.set_sq(to, promotion_piece);
-
-        self.ep_square = None;
-
-        if self.turn == Color::Black {
-            self.full_move += 1;
-        }
-        self.turn = !self.turn;
-        Ok(captured)
-    }
-
-    fn test_ep_move(&mut self, from: Square) -> Result<Option<Piece>, MoveError> {
-        let to = self.ep_square.ok_or(MoveError::FailedEp)?;
-        let capture_sq = Square::from_coords(to.col(), from.row());
-        // check for lateral checks
-        self.board.move_piece(from, to);
-        let captured = self.board.clear_sq(capture_sq);
-        self.ep_square = None;
-
-        if self.turn == Color::Black {
-            self.full_move += 1;
-        }
-        self.turn = !self.turn;
-        Ok(captured)
-    }
-
-    pub fn make_move(&mut self, from: Square, to: Square) -> Result<Option<Piece>, MoveError> {
-        let Some(piece) = self.board.get_sq(from) else {
-            return Err(MoveError::EmptySquare);
-        };
-        if piece.color != self.turn {
-            return Err(MoveError::WrongTurn);
-        }
-        let captured = match self.ep_square {
-            Some(ep) if self.board.is_pawn_attack(from, ep, self.turn) => {
-                self.test_ep_move(from)?
-            }
-            _ => self.test_move(piece, self.turn, from, to)?,
-        };
-
-        if piece.figure != Figure::Pawn
-            || (from.row(), to.row())
-                != match self.turn {
-                    Color::White => (Row::Two, Row::Four),
-                    Color::Black => (Row::Seven, Row::Five),
-                }
-        {
-            self.ep_square = None;
-        } else {
-            self.ep_square = match self.turn {
-                Color::White => Some(Square::from_coords(to.col(), Row::Three)),
-                Color::Black => Some(Square::from_coords(to.col(), Row::Six)),
-            }
-        }
-
-        if self.turn == Color::Black {
-            self.full_move += 1;
-        }
-        self.turn = !self.turn;
-        Ok(captured)
-    }
-
-    fn test_move(
-        &mut self,
-        piece: Piece,
-        turn: Color,
-        from: Square,
-        to: Square,
-    ) -> Result<Option<Piece>, MoveError> {
-        if !self.board.is_pseudolegal(piece, from, to, self.turn) {
-            return Err(MoveError::IllegalMove);
-        }
-        let captured = self.board.move_piece(from, to);
-        if self.board.is_in_check(turn) {
-            self.board.reverse_move_piece(from, to, captured);
-            return Err(MoveError::KingInCheck);
-        }
-        let last_row = match turn {
-            Color::White => Row::Eight,
-            Color::Black => Row::One,
-        };
-        if to.row() == last_row
-            && let Some(Piece {
-                color: _,
-                figure: pieces::Figure::Pawn,
-            }) = self.board.get_sq(to)
-        {
-            self.board.reverse_move_piece(from, to, captured);
-            return Err(MoveError::Promoting);
         }
         Ok(captured)
     }

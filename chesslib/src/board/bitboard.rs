@@ -48,6 +48,11 @@ impl BitBoard {
         self.0 == 0
     }
 
+    pub fn contains(&self, sq: Square) -> bool {
+        let sq = sq.into();
+        (*self & sq) == sq
+    }
+
     pub fn iter(self) -> impl Iterator<Item = Square> {
         BitBoardIter { rem_board: self }
     }

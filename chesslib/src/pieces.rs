@@ -1,6 +1,6 @@
 use crate::errors::ParsePieceError;
 use constants::*;
-use std::ops::Not;
+use std::{marker::ConstParamTy, ops::Not};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Piece {
@@ -63,7 +63,7 @@ impl Not for Color {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ConstParamTy)]
 #[repr(u8)]
 pub enum Figure {
     Pawn,

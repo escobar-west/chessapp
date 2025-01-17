@@ -1,4 +1,4 @@
-mod bitboard;
+pub mod bitboard;
 mod mailbox;
 use std::iter::repeat;
 
@@ -57,7 +57,7 @@ impl Board {
         self.clear_sq(from).and_then(|p| self.set_sq(to, p))
     }
 
-    pub fn reverse_move_piece(&mut self, from: Square, to: Square, captured: Option<Piece>) {
+    pub fn unmove_piece(&mut self, from: Square, to: Square, captured: Option<Piece>) {
         self.move_piece(to, from);
         if let Some(captured) = captured {
             self.set_sq(to, captured);
@@ -99,7 +99,7 @@ impl Board {
         if !(enemy_knight_mask & enemy_knight_location).empty() {
             return true;
         }
-        let enemy_pawn_mask = self.get_pawn_moves(square, turn);
+        let enemy_pawn_mask = self.pawn_moves(square, turn);
         let enemy_pawn_location = self.get_piece_board(Piece {
             color: !turn,
             figure: Figure::Pawn,
@@ -110,8 +110,8 @@ impl Board {
         false
     }
 
-    pub fn is_pawn_attack(&self, from: Square, ep: Square, color: Color) -> bool {
-        !(BitBoard::pawn_attacks(from, color) & ep.into()).empty()
+    pub fn is_ep_pawn_attack(&self, from: Square, to: Square, ep: Square, color: Color) -> bool {
+        to == ep && !(BitBoard::pawn_attacks(from, color) & ep.into()).empty()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
@@ -149,12 +149,12 @@ impl Board {
         match piece.figure {
             Figure::King => BitBoard::king_moves(from) & !self.occupied_color(piece.color),
             Figure::Knight => BitBoard::knight_moves(from) & !self.occupied_color(piece.color),
-            Figure::Pawn => self.get_pawn_moves(from, turn),
+            Figure::Pawn => self.pawn_moves(from, turn),
             _ => BitBoard::default(),
         }
     }
 
-    fn get_pawn_moves(&self, from: Square, turn: Color) -> BitBoard {
+    pub fn pawn_moves(&self, from: Square, turn: Color) -> BitBoard {
         let attacks = BitBoard::pawn_attacks(from, turn) & self.occupied_color(!turn);
         let moves = match turn {
             Color::White => {
@@ -218,7 +218,7 @@ impl Board {
         }
     }
 
-    fn occupied_color(&self, color: Color) -> BitBoard {
+    pub fn occupied_color(&self, color: Color) -> BitBoard {
         match color {
             Color::White => self.white_pieces.occupied,
             Color::Black => self.black_pieces.occupied,
