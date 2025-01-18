@@ -1,9 +1,9 @@
 pub mod bitboard;
 mod mailbox;
-use std::iter::repeat;
+use std::{iter::repeat, str::FromStr};
 
 use crate::{
-    errors::{InvalidValueError, ParseFenError},
+    errors::{InvalidCharError, InvalidValueError, ParseFenError},
     pieces::{Color, Figure, Piece, constants::*},
 };
 use bitboard::BitBoard;
@@ -271,6 +271,15 @@ impl TryFrom<u8> for Column {
     }
 }
 
+impl TryFrom<char> for Column {
+    type Error = InvalidCharError;
+
+    fn try_from(val: char) -> Result<Self, Self::Error> {
+        let int_repr = u8::try_from(u32::from(val) - 97).map_err(|_| InvalidCharError(val))?;
+        Self::try_from(int_repr).map_err(|_| InvalidCharError(val))
+    }
+}
+
 impl<T> Index<Column> for [T] {
     type Output = T;
 
@@ -323,6 +332,15 @@ impl TryFrom<u8> for Row {
     }
 }
 
+impl TryFrom<char> for Row {
+    type Error = InvalidCharError;
+
+    fn try_from(val: char) -> Result<Self, Self::Error> {
+        let int_repr = u8::try_from(u32::from(val) - 49).map_err(|_| InvalidCharError(val))?;
+        Self::try_from(int_repr).map_err(|_| InvalidCharError(val))
+    }
+}
+
 impl<T> Index<Row> for [T] {
     type Output = T;
 
@@ -370,6 +388,24 @@ impl Square {
     const unsafe fn from_u8_unchecked(val: u8) -> Self {
         // Safety: val must be < 64
         unsafe { std::mem::transmute::<u8, Self>(val) }
+    }
+}
+
+impl FromStr for Square {
+    type Err = ParseFenError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let chars: Vec<char> = s.chars().collect();
+        if chars.len() != 2 {
+            return Err(ParseFenError::InvalidString(s.into()));
+        }
+        let col = chars[0]
+            .try_into()
+            .map_err(|_| ParseFenError::InvalidString(s.into()))?;
+        let row = chars[1]
+            .try_into()
+            .map_err(|_| ParseFenError::InvalidString(s.into()))?;
+        Ok(Self::from_coords(col, row))
     }
 }
 

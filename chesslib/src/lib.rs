@@ -1,6 +1,7 @@
 #![feature(let_chains)]
 #![feature(adt_const_params)]
 pub mod board;
+mod castle;
 pub mod errors;
 pub mod pieces;
 
@@ -9,6 +10,7 @@ use core::panic;
 use board::Row;
 use board::Square;
 use board::{Board, bitboard::BitBoard};
+use castle::Castle;
 use errors::{MoveError, ParseFenError};
 use pieces::{
     Color, Figure, Piece,
@@ -21,6 +23,7 @@ type MoveResult = Result<Option<Piece>, MoveError>;
 pub struct GameState {
     board: Board,
     turn: Color,
+    castle: Castle,
     ep_square: Option<Square>,
     half_move: u16,
     full_move: u16,
@@ -42,8 +45,11 @@ impl GameState {
             "b" => Color::Black,
             s => return Err(ParseFenError::InvalidColor(s.to_owned())),
         };
-        let _castle_fen = fen_iter.next().ok_or(ParseFenError::EmptyFen)?;
-        let _ep_fen = fen_iter.next().ok_or(ParseFenError::EmptyFen)?;
+        let castle = fen_iter.next().ok_or(ParseFenError::EmptyFen)?.parse()?;
+        let ep_square = match fen_iter.next().ok_or(ParseFenError::EmptyFen)? {
+            "-" => Result::<_, ParseFenError>::Ok(None),
+            ep => Ok(Some(ep.parse()?)),
+        }?;
         let half_move = fen_iter.next().ok_or(ParseFenError::EmptyFen)?.parse()?;
         let full_move = fen_iter.next().ok_or(ParseFenError::EmptyFen)?.parse()?;
         if board.count_pieces(WHITE_KING) != 1 || board.count_pieces(BLACK_KING) != 1 {
@@ -52,7 +58,8 @@ impl GameState {
         Ok(GameState {
             board,
             turn,
-            ep_square: None,
+            castle,
+            ep_square,
             half_move,
             full_move,
         })

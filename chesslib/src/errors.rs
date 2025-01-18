@@ -33,6 +33,8 @@ pub enum ParseFenError {
     ParsePieceError(#[from] ParsePieceError),
     #[error(transparent)]
     InvalidValueError(#[from] InvalidValueError),
+    #[error("Invalid string: {0:#?}")]
+    InvalidString(String),
 }
 
 #[derive(Error, Debug, Copy, Clone)]
@@ -42,3 +44,7 @@ pub struct ParsePieceError(pub char);
 #[derive(Error, Debug, Copy, Clone)]
 #[error("Invalid input: {0}")]
 pub struct InvalidValueError(pub u8);
+
+#[derive(Error, Debug, Copy, Clone)]
+#[error("Invalid input: {0}")]
+pub struct InvalidCharError(pub char);
