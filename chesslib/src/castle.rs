@@ -1,5 +1,6 @@
 use crate::errors::ParseFenError;
 use std::{
+    fmt::Display,
     ops::{BitAndAssign, BitOrAssign, Not},
     str::FromStr,
 };
@@ -54,8 +55,8 @@ impl Not for Castle {
     }
 }
 
-impl ToString for Castle {
-    fn to_string(&self) -> String {
+impl Display for Castle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let output = match self {
             Castle::Null => "-",
             Castle::K => "K",
@@ -74,7 +75,7 @@ impl ToString for Castle {
             Castle::Qkq => "Qkq",
             Castle::KQkq => "KQkq",
         };
-        output.into()
+        write!(f, "{output}")
     }
 }
 

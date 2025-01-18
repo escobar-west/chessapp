@@ -6,6 +6,7 @@ pub mod errors;
 pub mod pieces;
 
 use core::panic;
+use std::fmt::Display;
 
 use board::Row;
 use board::Square;
@@ -211,6 +212,17 @@ impl GameState {
     }
 }
 
+impl Display for GameState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.board.to_string())?;
+        writeln!(f, "turn: {:?}", self.turn)?;
+        writeln!(f, "castle: {:?}", self.castle)?;
+        writeln!(f, "ep: {:?}", self.ep_square)?;
+        writeln!(f, "half: {:?}", self.half_move)?;
+        writeln!(f, "full: {:?}", self.full_move)
+    }
+}
+
 pub mod prelude {
     pub use crate::{
         GameState,
@@ -225,4 +237,5 @@ pub mod constants {
     pub const KINGS_ONLY: &str = "4k3/8/8/8/8/8/8/4K3 w - - 0 1";
     pub const KN: &str = "8/8/4k3/3N1n2/4K3/8/8/8 w - - 0 1";
     pub const KNP: &str = "nnnNNNk1/1P2P1P1/8/8/3p2p1/1Pp1p1p1/P1PP1P1P/2K5 w - - 0 1";
+    pub const KNPR: &str = "rn1nk2r/2P5/8/3pP3/6p1/8/4p1P1/R3K2R w KQq d6 0 1";
 }

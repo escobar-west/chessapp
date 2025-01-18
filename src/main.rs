@@ -9,7 +9,8 @@ use view::View;
 
 #[macroquad::main("Chess")]
 async fn main() -> Result<(), anyhow::Error> {
-    let mut app = App::new(KNP).await?;
+    let mut app = App::new(KNPR).await?;
+    println!("{}", app.gs);
     loop {
         app.update_state();
         app.draw_state().await;
@@ -99,6 +100,8 @@ impl App {
         to: Square,
         res: Result<Option<Piece>, MoveError>,
     ) {
+        println!("{:?}", res);
+        println!("{}", self.gs);
         match res {
             Ok(Some(_)) => {
                 self.last_move = Some((from, to));

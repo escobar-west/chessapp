@@ -1,6 +1,6 @@
 pub mod bitboard;
 mod mailbox;
-use std::{iter::repeat, str::FromStr};
+use std::{fmt::Display, iter::repeat, str::FromStr};
 
 use crate::{
     errors::{InvalidCharError, InvalidValueError, ParseFenError},
@@ -230,6 +230,24 @@ impl Board {
             Color::White => &mut self.white_pieces.occupied,
             Color::Black => &mut self.black_pieces.occupied,
         }
+    }
+}
+
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut char_board: [char; 64] = ['☐'; 64];
+        for (square, piece) in self.iter() {
+            let c: char = piece.into();
+            char_board[square] = c;
+        }
+        let mut out_str = String::new();
+        for i in (0..8).rev() {
+            let offset = 8 * i as usize;
+            let row: String = char_board[offset..offset + 8].iter().collect();
+            out_str.push_str(&row);
+            out_str.push('\n')
+        }
+        write!(f, "{out_str}")
     }
 }
 
