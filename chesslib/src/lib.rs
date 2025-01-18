@@ -93,11 +93,11 @@ impl GameState {
             Err(MoveError::IllegalMove)
         }?;
         self.board.set_sq(to, promotion_piece);
+        // half move
+        self.half_move = 0;
+        // ep square
         self.ep_square = None;
-        if self.turn == Color::Black {
-            self.full_move += 1;
-        }
-        self.turn = !self.turn;
+        self.end_move(to);
         Ok(captured)
     }
 
@@ -116,11 +116,27 @@ impl GameState {
             Figure::Bishop => self.make_generic_move::<{ Figure::Bishop }>(from, to)?,
             Figure::Queen => self.make_generic_move::<{ Figure::Queen }>(from, to)?,
         };
+        self.end_move(to);
+        Ok(captured)
+    }
+
+    fn end_move(&mut self, to_square: Square) {
+        // opp castle
+        let (opp_q_rook, opp_k_rook) = match self.turn {
+            Color::White => (Square::A8, Square::H8),
+            Color::Black => (Square::A1, Square::H1),
+        };
+        match to_square {
+            sq if sq == opp_k_rook => self.castle.remove_king_castle(!self.turn),
+            sq if sq == opp_q_rook => self.castle.remove_queen_castle(!self.turn),
+            _ => {}
+        }
+        // full move
         if self.turn == Color::Black {
             self.full_move += 1;
         }
+        // turn
         self.turn = !self.turn;
-        Ok(captured)
     }
 
     fn make_pawn_move(&mut self, from: Square, to: Square) -> MoveResult {
@@ -147,6 +163,7 @@ impl GameState {
         } else {
             Err(MoveError::IllegalMove)
         }?;
+        // ep
         let (start_row, ep_row, end_row) = match self.turn {
             Color::White => (Row::Two, Row::Three, Row::Four),
             Color::Black => (Row::Seven, Row::Six, Row::Five),
@@ -156,7 +173,9 @@ impl GameState {
         } else {
             self.ep_square = None;
         }
+        // half move
         self.half_move = 0;
+
         Ok(captured)
     }
 
@@ -169,7 +188,11 @@ impl GameState {
         } else {
             Err(MoveError::IllegalMove)
         }?;
+        // own castle
+        self.castle.remove_castle(self.turn);
+        // ep
         self.ep_square = None;
+        // half move
         match captured {
             Some(_piece) => self.half_move = 0,
             None => self.half_move += 1,
@@ -180,9 +203,9 @@ impl GameState {
     fn make_generic_move<const FIGURE: Figure>(&mut self, from: Square, to: Square) -> MoveResult {
         let moves = match FIGURE {
             Figure::Knight => BitBoard::knight_moves(from),
-            Figure::Rook => todo!(),
-            Figure::Bishop => todo!(),
-            Figure::Queen => todo!(),
+            Figure::Rook => BitBoard::king_moves(from),
+            Figure::Bishop => BitBoard::king_moves(from),
+            Figure::Queen => BitBoard::king_moves(from),
             _ => panic!("Cannot make a generic move with a King or Pawn"),
         } & !self.board.occupied_color(self.turn);
         let captured = if moves.contains(to) {
@@ -190,7 +213,24 @@ impl GameState {
         } else {
             Err(MoveError::IllegalMove)
         }?;
+
+        // own castle
+        if FIGURE == Figure::Rook {
+            let (q_rook_sq, k_rook_sq) = match self.turn {
+                Color::White => (Square::A1, Square::H1),
+                Color::Black => (Square::A8, Square::H8),
+            };
+            match from {
+                sq if sq == k_rook_sq => self.castle.remove_king_castle(self.turn),
+                sq if sq == q_rook_sq => self.castle.remove_queen_castle(self.turn),
+                _ => {}
+            }
+        }
+
+        // ep
         self.ep_square = None;
+
+        // half move
         match captured {
             Some(_piece) => self.half_move = 0,
             None => self.half_move += 1,

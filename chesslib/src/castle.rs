@@ -1,4 +1,4 @@
-use crate::errors::ParseFenError;
+use crate::{errors::ParseFenError, pieces::Color};
 use std::{
     fmt::Display,
     ops::{BitAndAssign, BitOrAssign, Not},
@@ -9,22 +9,57 @@ use std::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Castle {
-    Null,
-    K,
-    Q,
+    Null, // 0b0000
+    K,    // 0b0001
+    Q,    // 0b0010
     KQ,
-    k,
+    k, // 0b0100
     Kk,
     Qk,
     KQk,
-    q,
+    q, // 0b1000
     Kq,
     Qq,
     KQq,
     kq,
     Kkq,
     Qkq,
-    KQkq,
+    KQkq, // 0b1111
+}
+
+impl Castle {
+    pub fn remove_castle(&mut self, color: Color) {
+        let ptr = self as *mut Self as *mut u8;
+        let mask = match color {
+            Color::White => Castle::kq as u8,
+            Color::Black => Castle::KQ as u8,
+        };
+        unsafe {
+            *ptr &= mask;
+        }
+    }
+
+    pub fn remove_king_castle(&mut self, color: Color) {
+        let ptr = self as *mut Self as *mut u8;
+        let mask = match color {
+            Color::White => Castle::Qkq as u8,
+            Color::Black => Castle::KQq as u8,
+        };
+        unsafe {
+            *ptr &= mask;
+        }
+    }
+
+    pub fn remove_queen_castle(&mut self, color: Color) {
+        let ptr = self as *mut Self as *mut u8;
+        let mask = match color {
+            Color::White => Castle::Kkq as u8,
+            Color::Black => Castle::KQk as u8,
+        };
+        unsafe {
+            *ptr &= mask;
+        }
+    }
 }
 
 impl BitAndAssign for Castle {
@@ -43,15 +78,6 @@ impl BitOrAssign for Castle {
         unsafe {
             *ptr |= rhs as u8;
         }
-    }
-}
-
-impl Not for Castle {
-    type Output = Self;
-    fn not(self) -> Self::Output {
-        let output = Self::KQkq as u8 & !(self as u8);
-        // Safety: KQkq & any value is valid variant
-        unsafe { std::mem::transmute::<u8, Self>(output) }
     }
 }
 
