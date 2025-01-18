@@ -1,7 +1,7 @@
 use crate::{errors::ParseFenError, pieces::Color};
 use std::{
     fmt::Display,
-    ops::{BitAndAssign, BitOrAssign, Not},
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign},
     str::FromStr,
 };
 
@@ -28,37 +28,58 @@ pub enum Castle {
 }
 
 impl Castle {
-    pub fn remove_castle(&mut self, color: Color) {
-        let ptr = self as *mut Self as *mut u8;
+    pub fn can_king_castle(&self, color: Color) -> bool {
         let mask = match color {
-            Color::White => Castle::kq as u8,
-            Color::Black => Castle::KQ as u8,
+            Color::White => Castle::K,
+            Color::Black => Castle::k,
         };
-        unsafe {
-            *ptr &= mask;
-        }
+        *self & mask == mask
+    }
+
+    pub fn can_queen_castle(&self, color: Color) -> bool {
+        let mask = match color {
+            Color::White => Castle::Q,
+            Color::Black => Castle::q,
+        };
+        *self & mask == mask
+    }
+
+    pub fn remove_castle(&mut self, color: Color) {
+        let mask = match color {
+            Color::White => Castle::kq,
+            Color::Black => Castle::KQ,
+        };
+        *self &= mask;
     }
 
     pub fn remove_king_castle(&mut self, color: Color) {
-        let ptr = self as *mut Self as *mut u8;
         let mask = match color {
-            Color::White => Castle::Qkq as u8,
-            Color::Black => Castle::KQq as u8,
+            Color::White => Castle::Qkq,
+            Color::Black => Castle::KQq,
         };
-        unsafe {
-            *ptr &= mask;
-        }
+        *self &= mask;
     }
 
     pub fn remove_queen_castle(&mut self, color: Color) {
-        let ptr = self as *mut Self as *mut u8;
         let mask = match color {
-            Color::White => Castle::Kkq as u8,
-            Color::Black => Castle::KQk as u8,
+            Color::White => Castle::Kkq,
+            Color::Black => Castle::KQk,
         };
-        unsafe {
-            *ptr &= mask;
-        }
+        *self &= mask;
+    }
+}
+
+impl BitAnd for Castle {
+    type Output = Self;
+    fn bitand(self, rhs: Self) -> Self::Output {
+        unsafe { std::mem::transmute::<u8, Self>(self as u8 & rhs as u8) }
+    }
+}
+
+impl BitOr for Castle {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        unsafe { std::mem::transmute::<u8, Self>(self as u8 | rhs as u8) }
     }
 }
 

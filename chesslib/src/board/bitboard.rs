@@ -16,6 +16,11 @@ macro_rules! gen_table {
     }};
 }
 
+pub const CASTLE_SQS: BitBoard = BitBoard::from_square(Square::C1)
+    .or(BitBoard::from_square(Square::G1))
+    .or(BitBoard::from_square(Square::C8))
+    .or(BitBoard::from_square(Square::G8));
+
 static KING_MOVES: [BitBoard; 64] = gen_table!(BitBoard::king_move_mask);
 static KNIGHT_MOVES: [BitBoard; 64] = gen_table!(BitBoard::knight_move_mask);
 static WHITE_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mask, Color::White);

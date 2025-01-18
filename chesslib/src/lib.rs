@@ -8,6 +8,7 @@ pub mod pieces;
 use core::panic;
 use std::fmt::Display;
 
+use board::Column;
 use board::Row;
 use board::Square;
 use board::{Board, bitboard::BitBoard};
@@ -156,6 +157,7 @@ impl GameState {
             && to == ep
             && BitBoard::pawn_attacks(from, self.turn).contains(to)
         {
+            // make ep move
             let capture_sq = Square::from_coords(to.col(), from.row());
             self.board.move_piece(from, to);
             Ok(self.board.clear_sq(capture_sq))
@@ -175,7 +177,6 @@ impl GameState {
         }
         // half move
         self.half_move = 0;
-
         Ok(captured)
     }
 
@@ -183,10 +184,37 @@ impl GameState {
         let non_castle_moves = BitBoard::king_moves(from) & !self.board.occupied_color(self.turn);
         let captured = if non_castle_moves.contains(to) {
             self.test_move_for_check(from, to)
-        } else if false {
-            Ok(None) // castle
         } else {
-            Err(MoveError::IllegalMove)
+            // make castle move
+            let castle_row = match self.turn {
+                Color::White => Row::One,
+                Color::Black => Row::Eight,
+            };
+            match to.col() {
+                Column::C if to.row() == castle_row => {
+                    if self.castle.can_queen_castle(self.turn) {
+                        self.board.move_piece(from, to);
+                        let rook_from = Square::from_coords(Column::A, castle_row);
+                        let rook_to = Square::from_coords(Column::D, castle_row);
+                        self.board.move_piece(rook_from, rook_to);
+                        Ok(None)
+                    } else {
+                        Err(MoveError::IllegalMove)
+                    }
+                }
+                Column::G if to.row() == castle_row => {
+                    if self.castle.can_king_castle(self.turn) {
+                        self.board.move_piece(from, to);
+                        let rook_from = Square::from_coords(Column::H, castle_row);
+                        let rook_to = Square::from_coords(Column::F, castle_row);
+                        self.board.move_piece(rook_from, rook_to);
+                        Ok(None)
+                    } else {
+                        Err(MoveError::IllegalMove)
+                    }
+                }
+                _ => Err(MoveError::IllegalMove),
+            }
         }?;
         // own castle
         self.castle.remove_castle(self.turn);
@@ -213,7 +241,6 @@ impl GameState {
         } else {
             Err(MoveError::IllegalMove)
         }?;
-
         // own castle
         if FIGURE == Figure::Rook {
             let (q_rook_sq, k_rook_sq) = match self.turn {
@@ -226,10 +253,8 @@ impl GameState {
                 _ => {}
             }
         }
-
         // ep
         self.ep_square = None;
-
         // half move
         match captured {
             Some(_piece) => self.half_move = 0,
@@ -254,7 +279,7 @@ impl GameState {
 
 impl Display for GameState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.board.to_string())?;
+        writeln!(f, "{}", self.board)?;
         writeln!(f, "turn: {:?}", self.turn)?;
         writeln!(f, "castle: {:?}", self.castle)?;
         writeln!(f, "ep: {:?}", self.ep_square)?;
