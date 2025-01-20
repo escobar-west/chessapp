@@ -16,15 +16,12 @@ macro_rules! gen_table {
     }};
 }
 
-pub const CASTLE_SQS: BitBoard = BitBoard::from_square(Square::C1)
-    .or(BitBoard::from_square(Square::G1))
-    .or(BitBoard::from_square(Square::C8))
-    .or(BitBoard::from_square(Square::G8));
-
 static KING_MOVES: [BitBoard; 64] = gen_table!(BitBoard::king_move_mask);
 static KNIGHT_MOVES: [BitBoard; 64] = gen_table!(BitBoard::knight_move_mask);
 static WHITE_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mask, Color::White);
 static BLACK_PAWN_ATTACKS: [BitBoard; 64] = gen_table!(BitBoard::pawn_attack_mask, Color::Black);
+static STRAIGHT_MOVES: [[BitBoard; 64]; 64] = gen_straight_moves();
+static DIAG_MOVES: [[BitBoard; 64]; 64] = gen_diag_moves();
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct BitBoard(u64);
@@ -36,6 +33,14 @@ impl BitBoard {
 
     pub fn knight_moves(square: Square) -> Self {
         KNIGHT_MOVES[square]
+    }
+
+    pub fn straight_ray(from: Square, to: Square) -> Self {
+        STRAIGHT_MOVES[from][to]
+    }
+
+    pub fn diag_ray(from: Square, to: Square) -> Self {
+        DIAG_MOVES[from][to]
     }
 
     pub fn pawn_attacks(square: Square, color: Color) -> Self {
@@ -237,11 +242,95 @@ impl Iterator for BitBoardIter {
     }
 }
 
+const fn gen_straight_moves() -> [[BitBoard; 64]; 64] {
+    let mut array = [[BitBoard(0); 64]; 64];
+    let mut from_counter = 0u8;
+    while from_counter < 64 {
+        let from_sq = unsafe { Square::from_u8_unchecked(from_counter) };
+
+        let mut to_sq = from_sq.shift::<0, 1>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<0, 1>();
+        }
+
+        let mut to_sq = from_sq.shift::<1, 0>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<1, 0>();
+        }
+
+        let mut to_sq = from_sq.shift::<0, -1>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<0, -1>();
+        }
+
+        let mut to_sq = from_sq.shift::<-1, 0>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<-1, 0>();
+        }
+        from_counter += 1;
+    }
+    array
+}
+
+const fn gen_diag_moves() -> [[BitBoard; 64]; 64] {
+    let mut array = [[BitBoard(0); 64]; 64];
+    let mut from_counter = 0u8;
+    while from_counter < 64 {
+        let from_sq = unsafe { Square::from_u8_unchecked(from_counter) };
+
+        let mut to_sq = from_sq.shift::<1, 1>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<1, 1>();
+        }
+
+        let mut to_sq = from_sq.shift::<1, -1>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<1, -1>();
+        }
+
+        let mut to_sq = from_sq.shift::<-1, -1>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<-1, -1>();
+        }
+
+        let mut to_sq = from_sq.shift::<-1, 1>();
+        let mut move_board = BitBoard::from_square(from_sq);
+        while let Some(to) = to_sq {
+            array[from_sq as usize][to as usize] = move_board;
+            move_board.or_assign(BitBoard::from_square(to));
+            to_sq = to.shift::<-1, 1>();
+        }
+        from_counter += 1;
+    }
+    array
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    pub fn print_board(board: BitBoard, c: char) {
+    pub fn _print_board(board: BitBoard, c: char) {
         let mut char_board: [char; 64] = ['☐'; 64];
         for square in board.iter() {
             char_board[square] = c;
@@ -420,5 +509,10 @@ mod tests {
         let bitboard = BitBoard(0);
         let lsb = bitboard.bitscan_forward();
         assert_eq!(lsb, None);
+    }
+
+    #[test]
+    fn aaa() {
+        gen_straight_moves();
     }
 }

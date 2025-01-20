@@ -103,3 +103,24 @@ fn test_clear_and_set_sq() {
             ^ BitBoard::from(Square::A8);
     //assert_eq!(board.black_occupied, black_mask);
 }
+
+#[test]
+fn test_shift() {
+    let s = Square::A1;
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+    let s = s.shift::<0, 1>().unwrap();
+    println!("{s:?}");
+}

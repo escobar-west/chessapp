@@ -81,8 +81,12 @@ impl GameState {
         to: Square,
         promotion_piece: Piece,
     ) -> MoveResult {
-        let Some(Piece { color, figure: _ }) = self.board.get_sq(from) else {
-            return Err(MoveError::EmptySquare);
+        let Some(Piece {
+            color,
+            figure: Figure::Pawn,
+        }) = self.board.get_sq(from)
+        else {
+            return Err(MoveError::IllegalMove);
         };
         if color != self.turn {
             return Err(MoveError::WrongTurn);
@@ -160,8 +164,13 @@ impl GameState {
             // make ep move
             let capture_sq = Square::from_coords(to.col(), from.row());
             self.board.move_piece(from, to);
-            Ok(self.board.clear_sq(capture_sq))
-            // check for lateral checks
+            let capture_pawn = self.board.clear_sq(capture_sq);
+            if self.board.is_in_check(self.turn) {
+                self.board.move_piece(to, from);
+                capture_pawn.map(|p| self.board.set_sq(capture_sq, p));
+                return Err(MoveError::KingInCheck);
+            }
+            Ok(capture_pawn)
         } else {
             Err(MoveError::IllegalMove)
         }?;
@@ -229,20 +238,21 @@ impl GameState {
     }
 
     fn make_generic_move<const FIGURE: Figure>(&mut self, from: Square, to: Square) -> MoveResult {
-        let moves = match FIGURE {
-            Figure::Knight => BitBoard::knight_moves(from),
-            Figure::Rook => BitBoard::king_moves(from),
-            Figure::Bishop => BitBoard::king_moves(from),
-            Figure::Queen => BitBoard::king_moves(from),
+        use Figure::*;
+        let is_pseudo = match FIGURE {
+            Knight => self.board.is_pseudo::<{ Knight }>(from, to, self.turn),
+            Rook => self.board.is_pseudo::<{ Rook }>(from, to, self.turn),
+            Bishop => self.board.is_pseudo::<{ Bishop }>(from, to, self.turn),
+            Queen => self.board.is_pseudo::<{ Queen }>(from, to, self.turn),
             _ => panic!("Cannot make a generic move with a King or Pawn"),
-        } & !self.board.occupied_color(self.turn);
-        let captured = if moves.contains(to) {
+        };
+        let captured = if is_pseudo {
             self.test_move_for_check(from, to)
         } else {
             Err(MoveError::IllegalMove)
         }?;
         // own castle
-        if FIGURE == Figure::Rook {
+        if FIGURE == Rook {
             let (q_rook_sq, k_rook_sq) = match self.turn {
                 Color::White => (Square::A1, Square::H1),
                 Color::Black => (Square::A8, Square::H8),
@@ -303,4 +313,8 @@ pub mod constants {
     pub const KN: &str = "8/8/4k3/3N1n2/4K3/8/8/8 w - - 0 1";
     pub const KNP: &str = "nnnNNNk1/1P2P1P1/8/8/3p2p1/1Pp1p1p1/P1PP1P1P/2K5 w - - 0 1";
     pub const KNPR: &str = "rn1nk2r/2P5/8/3pP3/6p1/8/4p1P1/R3K2R w KQq d6 0 1";
+    pub const EPCHECK: &str = "4k3/8/8/r2pP2K/8/8/8/8 w - d6 0 1";
 }
+
+#[cfg(test)]
+mod tests;

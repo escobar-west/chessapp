@@ -64,11 +64,6 @@ impl Board {
         }
     }
 
-    pub fn is_pseudolegal(&self, piece: Piece, from: Square, to: Square, turn: Color) -> bool {
-        let move_mask = self.get_move_mask(piece, from, turn);
-        move_mask & to.into() != BitBoard::default()
-    }
-
     pub fn count_pieces(&self, piece: Piece) -> u8 {
         self.get_piece_board(piece).count_squares()
     }
@@ -91,6 +86,7 @@ impl Board {
         if !(enemy_king_mask & enemy_king_location).empty() {
             return true;
         }
+
         let enemy_knight_mask = BitBoard::knight_moves(square);
         let enemy_knight_location = self.get_piece_board(Piece {
             color: !turn,
@@ -99,6 +95,7 @@ impl Board {
         if !(enemy_knight_mask & enemy_knight_location).empty() {
             return true;
         }
+
         let enemy_pawn_mask = self.pawn_moves(square, turn);
         let enemy_pawn_location = self.get_piece_board(Piece {
             color: !turn,
@@ -107,11 +104,16 @@ impl Board {
         if !(enemy_pawn_mask & enemy_pawn_location).empty() {
             return true;
         }
-        false
-    }
 
-    pub fn is_ep_pawn_attack(&self, from: Square, to: Square, ep: Square, color: Color) -> bool {
-        to == ep && !(BitBoard::pawn_attacks(from, color) & ep.into()).empty()
+        for rook_sq in self.iter_piece(Piece {
+            color: !turn,
+            figure: Figure::Rook,
+        }) {
+            if self.is_pseudo::<{ Figure::Rook }>(rook_sq, square, !turn) {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Square, Piece)> {
@@ -145,12 +147,25 @@ impl Board {
         Ok(board)
     }
 
-    fn get_move_mask(&self, piece: Piece, from: Square, turn: Color) -> BitBoard {
-        match piece.figure {
-            Figure::King => BitBoard::king_moves(from) & !self.occupied_color(piece.color),
-            Figure::Knight => BitBoard::knight_moves(from) & !self.occupied_color(piece.color),
-            Figure::Pawn => self.pawn_moves(from, turn),
-            _ => BitBoard::default(),
+    pub fn is_pseudo<const FIGURE: Figure>(&self, from: Square, to: Square, turn: Color) -> bool {
+        use Figure::*;
+        match FIGURE {
+            Knight => (BitBoard::knight_moves(from) & !self.occupied_color(turn)).contains(to),
+            Rook => {
+                let is_cleared = BitBoard::straight_ray(from, to) & self.occupied == from.into();
+                is_cleared && !self.occupied_color(turn).contains(to)
+            }
+            Bishop => {
+                let is_cleared = BitBoard::diag_ray(from, to) & self.occupied == from.into();
+                is_cleared && !self.occupied_color(turn).contains(to)
+            }
+            Queen => {
+                let is_cleared = (BitBoard::straight_ray(from, to) | BitBoard::diag_ray(from, to))
+                    & self.occupied
+                    == from.into();
+                is_cleared && !self.occupied_color(turn).contains(to)
+            }
+            _ => todo!(),
         }
     }
 
@@ -401,6 +416,15 @@ impl Square {
     pub const fn row(self) -> Row {
         // Safety: self >> 3 < 8
         unsafe { Row::from_u8_unchecked(self as u8 >> 3) }
+    }
+
+    pub const fn shift<const COLS: i8, const ROWS: i8>(self) -> Option<Self> {
+        let (new_col, new_row) = (self.col() as i8 + COLS, self.row() as i8 + ROWS);
+        if 0 <= new_col && new_col < 8 && 0 <= new_row && new_row < 8 {
+            unsafe { Some(Self::from_u8_unchecked(8 * new_row as u8 + new_col as u8)) }
+        } else {
+            None
+        }
     }
 
     const unsafe fn from_u8_unchecked(val: u8) -> Self {
