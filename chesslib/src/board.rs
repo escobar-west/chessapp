@@ -113,6 +113,24 @@ impl Board {
                 return true;
             }
         }
+
+        for bishop_sq in self.iter_piece(Piece {
+            color: !turn,
+            figure: Figure::Bishop,
+        }) {
+            if self.is_pseudo::<{ Figure::Bishop }>(bishop_sq, square, !turn) {
+                return true;
+            }
+        }
+
+        for queen_sq in self.iter_piece(Piece {
+            color: !turn,
+            figure: Figure::Queen,
+        }) {
+            if self.is_pseudo::<{ Figure::Queen }>(queen_sq, square, !turn) {
+                return true;
+            }
+        }
         false
     }
 

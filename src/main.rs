@@ -9,7 +9,7 @@ use view::View;
 
 #[macroquad::main("Chess")]
 async fn main() -> Result<(), anyhow::Error> {
-    let mut app = App::new(DEFAULT_FEN).await?;
+    let mut app = App::new(CASTLECHECK).await?;
     println!("{}", app.gs);
     loop {
         app.update_state();

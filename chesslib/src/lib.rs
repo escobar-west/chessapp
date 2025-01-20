@@ -202,9 +202,14 @@ impl GameState {
             match to.col() {
                 Column::C if to.row() == castle_row => {
                     if self.castle.can_queen_castle(self.turn) {
-                        self.board.move_piece(from, to);
                         let rook_from = Square::from_coords(Column::A, castle_row);
                         let rook_to = Square::from_coords(Column::D, castle_row);
+                        for square in BitBoard::straight_ray(from, rook_from).iter() {
+                            if self.board.is_square_attacked(square, self.turn) {
+                                return Err(MoveError::KingInCheck);
+                            }
+                        }
+                        self.board.move_piece(from, to);
                         self.board.move_piece(rook_from, rook_to);
                         Ok(None)
                     } else {
@@ -213,9 +218,14 @@ impl GameState {
                 }
                 Column::G if to.row() == castle_row => {
                     if self.castle.can_king_castle(self.turn) {
-                        self.board.move_piece(from, to);
                         let rook_from = Square::from_coords(Column::H, castle_row);
                         let rook_to = Square::from_coords(Column::F, castle_row);
+                        for square in BitBoard::straight_ray(from, rook_from).iter() {
+                            if self.board.is_square_attacked(square, self.turn) {
+                                return Err(MoveError::KingInCheck);
+                            }
+                        }
+                        self.board.move_piece(from, to);
                         self.board.move_piece(rook_from, rook_to);
                         Ok(None)
                     } else {
@@ -314,6 +324,7 @@ pub mod constants {
     pub const KNP: &str = "nnnNNNk1/1P2P1P1/8/8/3p2p1/1Pp1p1p1/P1PP1P1P/2K5 w - - 0 1";
     pub const KNPR: &str = "rn1nk2r/2P5/8/3pP3/6p1/8/4p1P1/R3K2R w KQq d6 0 1";
     pub const EPCHECK: &str = "4k3/8/8/r2pP2K/8/8/8/8 w - d6 0 1";
+    pub const CASTLECHECK: &str = "r3k2r/1p6/2B5/8/8/5q2/6P1/R3K2R w KQkq - 0 1";
 }
 
 #[cfg(test)]
